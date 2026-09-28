@@ -8,8 +8,8 @@ import {
   type Rank,
   type Team,
 } from '@antego/shared';
-import { BOARD_TOP, squareToWorld } from './board.js';
-import { PieceKit, PieceObject } from './pieces.js';
+import { BOARD_TOP, squareAt, squareToWorld } from './board.js';
+import { FACING, PieceKit, PieceObject } from './pieces.js';
 import { sfx } from '../audio/sfx.js';
 import { toyBoxSlot } from './props.js';
 import { targetRing } from './textures.js';
@@ -28,7 +28,7 @@ export interface PresenterHooks {
   /** How a battle ended, after the falls. */
   onBattleResolved?: (outcome: string) => void;
   /** Camera leans in on a move / battle, and back out afterwards. */
-  focus?: (point: THREE.Vector3) => Promise<void>;
+  focus?: (point: THREE.Vector3, span?: number) => Promise<void>;
   unfocus?: () => Promise<void>;
   /** An army is knocked out (3–4 players): banner before its soldiers go to the toy box. */
   onOut?: (team: Team) => Promise<void> | void;
@@ -249,7 +249,10 @@ export class Presenter {
         const obj = this.pieces.get(e.pieceId);
         if (!obj) return;
         this.select(null, []);
-        await this.hooks.focus?.(squareToWorld(e.from).lerp(squareToWorld(e.to), 0.5));
+        await this.hooks.focus?.(
+          squareToWorld(e.from).lerp(squareToWorld(e.to), 0.5),
+          Math.abs(e.to.x - e.from.x) + Math.abs(e.to.y - e.from.y),
+        );
         await this.hop(obj, e.from, e.to);
         await wait(250);
         await this.hooks.unfocus?.();
@@ -261,9 +264,16 @@ export class Presenter {
         if (!att || !def) return;
         this.select(null, []);
         // Walk up to the enemy, then both are revealed.
-        const from = { x: Math.round(att.position.x + 4.5), y: Math.round(att.position.z + 4.5) };
-        const to = { x: Math.round(def.position.x + 4.5), y: Math.round(def.position.z + 4.5) };
-        await this.hooks.focus?.(squareToWorld(to).lerp(squareToWorld(from), 0.25));
+        const from = squareAt(att.position);
+        const to = squareAt(def.position);
+        // A scout charging from afar: frame the whole run, not just the clash.
+        const span = Math.abs(to.x - from.x) + Math.abs(to.y - from.y);
+        await this.hooks.focus?.(
+          squareToWorld(to).lerp(squareToWorld(from), span > 3 ? 0.5 : 0.25),
+          span,
+        );
+        // Face each other (on the plus board they can meet side-on).
+        await Promise.all([this.turnTo(att, def.position), this.turnTo(def, att.position)]);
         await this.hop(att, from, to, 0.55);
         await this.threaten(att, def);
         sfx.play('clash');
@@ -275,7 +285,7 @@ export class Presenter {
           defenderRank: e.defenderRank,
           reason: e.reason,
         });
-        this.lastBattle = { att, from, to, reason: e.reason };
+        this.lastBattle = { att, def, from, to, reason: e.reason };
         return;
       }
       case 'battleResolved': {
@@ -294,6 +304,11 @@ export class Presenter {
         if (e.outcome === 'attacker' && lb) {
           const mid = squareToWorld(lb.from).lerp(squareToWorld(lb.to), 0.55);
           await this.hopFrom(lb.att, mid, squareToWorld(lb.to));
+        }
+        // Survivors turn back to face the way their army faces.
+        if (lb) {
+          const alive = [lb.att, lb.def].filter((o) => !e.fallen.includes(o.pieceId));
+          await Promise.all(alive.map((o) => this.turnTo(o, null)));
         }
         this.hooks.onBattleResolved?.(e.outcome);
         if (e.outcome !== 'both' && reason !== 'spion' && reason !== 'flag') sfx.play('fanfare');
@@ -316,7 +331,25 @@ export class Presenter {
     }
   }
 
-  private lastBattle: { att: PieceObject; from: Pos; to: Pos; reason: string } | null = null;
+  private lastBattle: {
+    att: PieceObject;
+    def: PieceObject;
+    from: Pos;
+    to: Pos;
+    reason: string;
+  } | null = null;
+
+  /** Turn a soldier on the spot to face a point (null: back to his army's facing). */
+  private turnTo(obj: PieceObject, point: THREE.Vector3 | null) {
+    const want =
+      point === null
+        ? FACING[obj.team]
+        : Math.atan2(point.x - obj.position.x, point.z - obj.position.z);
+    const start = obj.body.rotation.y;
+    const delta = Math.atan2(Math.sin(want - start), Math.cos(want - start));
+    if (Math.abs(delta) < 0.05) return Promise.resolve();
+    return tween(220 + Math.abs(delta) * 120, (k) => (obj.body.rotation.y = start + delta * k));
+  }
 
   /** Toy-soldier walk: they're glued to their base plates, so they waddle along. */
   private hop(obj: PieceObject, from: Pos, to: Pos, fraction = 1) {

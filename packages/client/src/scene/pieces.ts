@@ -131,7 +131,7 @@ export class PieceKit {
 export const PIECE_SCALE = 1.3;
 
 /** Soldiers face the enemy: the models look along +Z, so turn each army towards its front. */
-const FACING: Record<Team, number> = {
+export const FACING: Record<Team, number> = {
   groen: Math.PI, // towards -Z
   sand: 0, // towards +Z
   blaa: Math.PI / 2, // towards +X

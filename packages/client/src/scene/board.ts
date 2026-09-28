@@ -23,6 +23,12 @@ export function squareToWorld(p: Pos, y = BOARD_TOP): THREE.Vector3 {
   return new THREE.Vector3(p.x - o, y, p.y - o);
 }
 
+/** The square a world position stands on (not checked against the board's shape). */
+export function squareAt(v: THREE.Vector3): Pos {
+  const o = (active.size - 1) / 2;
+  return { x: Math.round(v.x + o), y: Math.round(v.z + o) };
+}
+
 export function worldToSquare(v: THREE.Vector3): Pos | null {
   const h = active.size / 2;
   const p = { x: Math.floor(v.x + h), y: Math.floor(v.z + h) };

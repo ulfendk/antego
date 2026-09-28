@@ -106,7 +106,7 @@ export class CameraRig {
     if (da < -Math.PI) da += Math.PI * 2;
     // Each finger's move shifts the centroid by half; vertical centroid motion tilts.
     const dy = (cur.y - prev.y) / 2;
-    this.orbit(-da, dy * -0.004);
+    this.orbit(da, dy * -0.004);
   }
 
   // ---------------------------------------------------------------- camera maths

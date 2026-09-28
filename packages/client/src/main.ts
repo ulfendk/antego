@@ -54,7 +54,7 @@ async function boot() {
   const presenter = new Presenter(kit, {
     onBattle: (info) => app!.showBattle(info),
     onBattleResolved: (outcome) => app!.battleResolved(outcome),
-    focus: (p) => stage.focus(p),
+    focus: (p, span) => stage.focus(p, span),
     unfocus: () => stage.unfocus(),
     onOut: (team) => app!.armyOut(team),
   });

@@ -17,6 +17,7 @@ import {
 import { N8AOPostPass } from 'n8ao';
 import type { Team } from '@antego/shared';
 import { BOARD_TOP, activeBoard, worldToSquare } from './board.js';
+import { toyBoxCentres } from './props.js';
 import { CameraRig } from './rig.js';
 import { SETTINGS, type Quality } from './quality.js';
 import { stepTweens, tween, ease } from './tween.js';
@@ -44,6 +45,8 @@ export class Stage {
   private composer: EffectComposer | null = null;
   private key!: THREE.DirectionalLight;
   private last = performance.now();
+  /** When the browser last gave us an animation frame (to notice when it stops). */
+  private lastFrame = performance.now();
   private frameTimes: number[] = [];
   private side: Team = 'groen';
   private portrait = false;
@@ -87,10 +90,12 @@ export class Stage {
     // that still count as visible); keep animations, and so the game flow, moving anyway.
     setInterval(() => {
       const now = performance.now();
-      if (!document.hidden && now - this.last < 250) return;
+      if (!document.hidden && now - this.lastFrame < 250) return;
       this.last = now;
       stepTweens(100);
       this.override?.update(100);
+      // A race keeps going in a stalled-but-visible window; a hidden page (locked phone) pauses it.
+      if (!document.hidden) this.driver?.(100);
     }, 100);
   }
 
@@ -192,7 +197,9 @@ export class Stage {
     this.camera.updateProjectionMatrix();
     this.fitOverride();
     // Re-frame the board for the new shape (unless we're zoomed in on a move).
-    if (!this.focused && !this.flying) this.setSide(this.side, false);
+    if (this.welcomeView) {
+      if (!this.flying) void this.welcome();
+    } else if (!this.focused && !this.flying) this.setSide(this.side, false);
   }
 
   /** Where the camera sits for an army: angles from the screen shape, distance so the board fits. */
@@ -282,7 +289,7 @@ export class Stage {
       ease.inOut,
     ).then(() => {
       this.flying = false;
-      this.controls.enabled = !this.override;
+      this.controls.enabled = !this.override && !this.driver;
     });
   }
 
@@ -291,10 +298,104 @@ export class Stage {
     this.controls.autoRotate = on;
   }
 
+  private welcomeView: { target: THREE.Vector3; polar: number; az: number; dist: number } | null =
+    null;
+  private swayTime = 0;
+  /** Where the menu card ends (NDC y, -1 = screen bottom): the jeep goes in the strip below. */
+  private cardBottom = -0.74;
+
+  /**
+   * The welcome screen's view: across the board towards the green army's toy box (where the
+   * race jeep waits), swaying gently rather than circling the table, so the box stays in view.
+   */
+  welcome(cardBottom = this.cardBottom) {
+    this.cardBottom = cardBottom;
+    const box = toyBoxCentres()[0];
+    if (!box) return this.idleOrbit(true);
+    this.side = 'groen';
+    this.focused = false;
+    this.controls.autoRotate = false;
+    const polar = this.portrait ? 0.62 : 0.92;
+    const az = this.portrait ? 0.35 : 0.5;
+    // Keep the box (flaps and all) and the near half of the board on screen.
+    const pts: THREE.Vector3[] = [];
+    for (const sx of [-1, 1])
+      for (const sz of [-1, 1])
+        for (const y of [0, 1]) {
+          pts.push(
+            new THREE.Vector3(
+              box.centre.x + sx * box.halfX * 0.8,
+              y,
+              box.centre.z + sz * box.halfZ * 0.8,
+            ),
+          );
+        }
+    const e = activeBoard().size / 2;
+    // …and the board's near corner, so it reads as the game table.
+    pts.push(new THREE.Vector3(e * 0.2, 0, e));
+    let target = new THREE.Vector3(box.centre.x * 0.12, 0, box.centre.z * 0.45);
+    let dist = this.fitPoints(target, polar, az, pts);
+    if (this.portrait) {
+      // Phones: the menu card fills the middle, so aim past the box until the jeep sits in the
+      // strip below the card.
+      dist = 26;
+      const jeep = new THREE.Vector3(box.centre.x + 0.2, 0.3, box.centre.z + 0.5);
+      const away = new THREE.Vector3(-Math.sin(az), 0, -Math.cos(az));
+      const cam = this.camera.clone();
+      let best = { err: Infinity, target };
+      for (let shift = -4; shift <= 14; shift += 0.25) {
+        const t = jeep.clone().setY(0).addScaledVector(away, shift);
+        cam.position.setFromSphericalCoords(dist, polar, az).add(t);
+        cam.lookAt(t);
+        cam.updateMatrixWorld();
+        const p = jeep.clone().project(cam);
+        const err = Math.abs(p.y - (this.cardBottom - 1) / 2) + Math.max(0, Math.abs(p.x) - 0.6);
+        if (err < best.err) best = { err, target: t };
+      }
+      target = best.target;
+    }
+    this.welcomeView = { target, polar, az, dist };
+    this.swayTime = 0;
+    return this.flyTo(target, new THREE.Spherical(dist, polar, az), 1400);
+  }
+
+  /** Smallest camera distance at which all the points are on screen. */
+  private fitPoints(target: THREE.Vector3, polar: number, az: number, pts: THREE.Vector3[]) {
+    const cam = this.camera.clone();
+    const fits = (d: number) => {
+      cam.position.setFromSphericalCoords(d, polar, az).add(target);
+      cam.lookAt(target);
+      cam.updateMatrixWorld();
+      return pts.every((p) => {
+        const v = p.clone().project(cam);
+        return Math.abs(v.x) < 0.92 && Math.abs(v.y) < 0.9 && v.z < 1;
+      });
+    };
+    let lo = 4;
+    let hi = 80;
+    for (let i = 0; i < 22; i++) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  }
+
+  private sway(dt: number) {
+    const w = this.welcomeView!;
+    this.swayTime += dt / 1000;
+    const az = w.az + Math.sin(this.swayTime * 0.18) * 0.22;
+    const polar = w.polar + Math.sin(this.swayTime * 0.11) * 0.04;
+    this.controls.target.copy(w.target);
+    this.camera.position.setFromSphericalCoords(w.dist, polar, az).add(w.target);
+    this.camera.lookAt(w.target);
+  }
+
   /** Swing the camera round to an army's side of the table. */
   setSide(team: Team, animate = true) {
     this.side = team;
     this.focused = false;
+    this.welcomeView = null;
     this.controls.autoRotate = false;
     const f = this.framing(team);
     if (!animate) {
@@ -309,7 +410,7 @@ export class Stage {
   private beforeFocus: { target: THREE.Vector3; sphere: THREE.Spherical } | null = null;
 
   /** Lean in on a move: closer and centred between the two squares, from the player's current angle. */
-  focus(point: THREE.Vector3) {
+  focus(point: THREE.Vector3, span = 1) {
     const cur = new THREE.Spherical().setFromVector3(
       this.camera.position.clone().sub(this.controls.target),
     );
@@ -318,7 +419,8 @@ export class Stage {
     this.focused = true;
     const f = this.framing(this.side);
     const target = new THREE.Vector3(point.x, 0, point.z);
-    const radius = Math.min(cur.radius, f.dist) * 0.6;
+    // A long scout run needs a wider view than a single step, so both ends stay in shot.
+    const radius = Math.min(cur.radius, f.dist) * Math.min(1, 0.5 + span * 0.07);
     return this.flyTo(
       target,
       new THREE.Spherical(radius, Math.min(cur.phi + 0.1, 1.0), cur.theta),
@@ -372,6 +474,7 @@ export class Stage {
 
   private frame() {
     const now = performance.now();
+    this.lastFrame = now;
     const dt = Math.min(100, now - this.last);
     this.last = now;
     stepTweens(dt);
@@ -384,11 +487,36 @@ export class Stage {
       return;
     }
     this.onFrame?.(dt);
-    this.controls.update(dt);
+    if (this.driver) this.driver(dt);
+    else if (this.welcomeView && !this.flying) this.sway(dt);
+    else this.controls.update(dt);
     this.renderer.toneMapping = this.composer ? THREE.NoToneMapping : THREE.AgXToneMapping;
     if (this.composer) this.composer.render(dt / 1000);
     else this.renderer.render(this.scene, this.camera);
     this.watchFrameRate(dt);
+  }
+
+  private driver: ((dt: number) => void) | null = null;
+
+  /**
+   * Something else drives the camera every frame (the race's chase camera), rendering the
+   * table as usual; null hands it back to the player's gestures.
+   */
+  drive(fn: ((dt: number) => void) | null) {
+    this.driver = fn;
+    this.controls.enabled = !fn && !this.override && !this.flying;
+  }
+
+  get driving() {
+    return !!this.driver;
+  }
+
+  /** Keep the lamp's shadows sharp round a point away from the board (null: the board). */
+  lightAt(p: THREE.Vector3 | null) {
+    const at = p ?? new THREE.Vector3();
+    this.key.position.set(at.x + 5, 11, at.z + 6);
+    this.key.target.position.set(at.x, 0, at.z);
+    this.key.target.updateMatrixWorld();
   }
 
   /** Hand the screen to a mini-game (or back to the board with null). */
