@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createRng } from '@antego/shared';
 import { soldierMesh } from '../scene/pieces.js';
 import { TEAM_COLORS } from '../scene/textures.js';
+import { sfx } from '../audio/sfx.js';
 import { Minigame, canvasTexture, type MinigameContext, type Pointer } from './base.js';
 
 const JUMPS = 3;
@@ -160,6 +161,7 @@ export class Faldskaerm extends Minigame {
       const size = 1.6 * (1 + 0.15 * this.ctx.handicap);
       this.scores.push(Math.max(0, Math.round(100 - (d / size) * 60)));
       this.landedFor = 1;
+      sfx.play('thud');
     }
     this.place();
   }

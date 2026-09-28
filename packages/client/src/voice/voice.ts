@@ -1,3 +1,4 @@
+import { unlockAudio } from '../audio/context.js';
 import type { LineId } from '../generated/lines.js';
 
 interface Manifest {
@@ -29,19 +30,14 @@ class Voice {
     }
   }
 
-  /** Browsers only allow audio after a user gesture; call from the first tap. */
   unlock() {
-    if (!this.ctx) {
-      const Ctx =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return;
-      this.ctx = new Ctx();
-      this.gain = this.ctx.createGain();
+    const ctx = unlockAudio();
+    if (ctx && !this.ctx) {
+      this.ctx = ctx;
+      this.gain = ctx.createGain();
       this.gain.gain.value = 0.9;
-      this.gain.connect(this.ctx.destination);
+      this.gain.connect(ctx.destination);
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
   has(id: LineId) {

@@ -60,6 +60,9 @@ lines:
   - id: lyd
     speaker: fortaeller
     text: Oplæsning
+  - id: lydeffekter
+    speaker: fortaeller
+    text: Lydeffekter
   - id: til
     speaker: fortaeller
     text: Til

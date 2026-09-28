@@ -28,6 +28,7 @@ import type { Stage } from './scene/stage.js';
 import { button, h, line, t } from './ui/dom.js';
 import { toast } from './ui/toast.js';
 import { voice } from './voice/voice.js';
+import { sfx } from './audio/sfx.js';
 
 const rankLine = (r: Rank) => `rang.${r}` as LineId;
 const rankInfo = (r: Rank) => `rang.${r}_info` as LineId;
@@ -171,6 +172,23 @@ export class App {
             'menu.fra',
             () => (voice.setEnabled(false), this.settings()),
             voice.enabled ? 'big' : 'big on',
+            '🔇',
+          ),
+        ),
+        line('menu.lydeffekter', 'h2'),
+        h(
+          'div',
+          { class: 'row' },
+          button(
+            'menu.til',
+            () => (sfx.setEnabled(true), this.settings()),
+            sfx.enabled ? 'big on' : 'big',
+            '🔊',
+          ),
+          button(
+            'menu.fra',
+            () => (sfx.setEnabled(false), this.settings()),
+            sfx.enabled ? 'big' : 'big on',
             '🔇',
           ),
         ),
@@ -419,6 +437,7 @@ export class App {
     const c = this.controller!;
     const winner = view.winner!;
     const iWon = winner === c.me(view);
+    sfx.play(c.mode === 'hotseat' || iWon ? 'victory' : 'sad', 300);
     const title: LineId =
       c.mode === 'hotseat'
         ? winner === 'groen'

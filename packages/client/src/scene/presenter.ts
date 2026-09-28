@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GameEvent, GameView, PieceView, Pos, Rank, Team } from '@antego/shared';
 import { BOARD_TOP, squareToWorld } from './board.js';
 import { PieceKit, PieceObject } from './pieces.js';
+import { sfx } from '../audio/sfx.js';
 import { toyBoxSlot } from './props.js';
 import { targetRing } from './textures.js';
 import { ease, tween, wait } from './tween.js';
@@ -151,6 +152,7 @@ export class Presenter {
     this.selected = pieceId ? (this.pieces.get(pieceId) ?? null) : null;
     if (!this.selected) return;
     void this.lift(this.selected, true);
+    sfx.play('tick');
     for (const t of targets) {
       const ring = new THREE.Mesh(
         new THREE.PlaneGeometry(0.92, 0.92).rotateX(-Math.PI / 2),
@@ -215,6 +217,7 @@ export class Presenter {
         const to = { x: Math.round(def.position.x + 4.5), y: Math.round(def.position.z + 4.5) };
         await this.hooks.focus?.(squareToWorld(to).lerp(squareToWorld(from), 0.25));
         await this.hop(att, from, to, 0.55);
+        sfx.play('clash');
         att.setRank(e.attackerRank, false);
         await this.reveal(def, e.defenderRank);
         await this.hooks.onBattle?.({
@@ -223,7 +226,7 @@ export class Presenter {
           defenderRank: e.defenderRank,
           reason: e.reason,
         });
-        this.lastBattle = { att, from, to };
+        this.lastBattle = { att, from, to, reason: e.reason };
         return;
       }
       case 'battleResolved': {
@@ -232,6 +235,11 @@ export class Presenter {
         const fallen = e.fallen
           .map((id) => this.pieces.get(id))
           .filter((o): o is PieceObject => !!o);
+        // Special battles get their own sound; mines go "bum" as the attacker topples.
+        const reason = lb?.reason;
+        if (reason === 'mine') sfx.play('bum');
+        else if (reason === 'mine-desarmeret') sfx.play('defuse');
+        else if (reason === 'spion') sfx.play('sneaky');
         await Promise.all(fallen.map((o) => this.fall(o, view)));
         // The winning attacker takes the square.
         if (e.outcome === 'attacker' && lb) {
@@ -239,6 +247,7 @@ export class Presenter {
           await this.hopFrom(lb.att, mid, squareToWorld(lb.to));
         }
         this.hooks.onBattleResolved?.(e.outcome);
+        if (e.outcome !== 'both' && reason !== 'spion' && reason !== 'flag') sfx.play('fanfare');
         await wait(600);
         await this.hooks.unfocus?.();
         return;
@@ -248,7 +257,7 @@ export class Presenter {
     }
   }
 
-  private lastBattle: { att: PieceObject; from: Pos; to: Pos } | null = null;
+  private lastBattle: { att: PieceObject; from: Pos; to: Pos; reason: string } | null = null;
 
   /** Toy-soldier hop: they're stuck to their bases, so they bounce along. */
   private hop(obj: PieceObject, from: Pos, to: Pos, fraction = 1) {
@@ -278,6 +287,7 @@ export class Presenter {
         ease.linear,
       );
       // Squash as the base lands on the cardboard.
+      sfx.play('tap');
       await tween(
         140,
         (k) => {
@@ -293,7 +303,8 @@ export class Presenter {
 
   private async reveal(obj: PieceObject, rank: Rank) {
     if (obj.rank === rank) return;
-    // The card tips over like a flipped Stratego tile, and the soldier pops up.
+    // The tile tips over like a flipped Stratego piece, and the soldier pops up.
+    sfx.play('flip');
     await tween(
       220,
       (k) => (obj.body.rotation.x = (obj.team === 'groen' ? 1 : -1) * k * 1.4),
@@ -308,6 +319,7 @@ export class Presenter {
   /** Falls over with a toy bounce, then is lifted into the toy box beside the board. */
   private async fall(obj: PieceObject, view: GameView) {
     const dir = obj.team === 'groen' ? 1 : -1;
+    sfx.play('clatter');
     await tween(
       520,
       (k) => {
@@ -330,6 +342,7 @@ export class Presenter {
       },
       ease.inOut,
     );
+    sfx.play('rattle');
     this.pieces.delete(obj.pieceId);
     obj.setBadge(false);
     this.layDown(obj);

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createRng } from '@antego/shared';
 import { soldierMesh } from '../scene/pieces.js';
+import { sfx } from '../audio/sfx.js';
 import { Minigame, canvasTexture, type MinigameContext, type Pointer } from './base.js';
 
 /** Target positions [x, y, z]: each row hides behind its own fence. */
@@ -148,6 +149,7 @@ export class Korkskud extends Minigame {
     const target = hit && up.find((t) => t.disc === hit.object);
     if (!target) return;
     target.state = 'hit';
+    sfx.play('pop');
     target.t = 0;
     this.hits++;
   }

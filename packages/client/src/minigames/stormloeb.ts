@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { other } from '@antego/shared';
 import { soldierMesh } from '../scene/pieces.js';
+import { sfx } from '../audio/sfx.js';
 import { Minigame, canvasTexture, type MinigameContext } from './base.js';
 
 const GOAL = 30;
@@ -90,6 +91,7 @@ export class Stormloeb extends Minigame {
     if (this.elapsed - this.lastTap < MIN_TAP_MS) return;
     this.lastTap = this.elapsed;
     this.v += IMPULSE * (1 + 0.15 * this.ctx.handicap);
+    sfx.play('hop');
     this.puff();
   }
 

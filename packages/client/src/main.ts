@@ -15,9 +15,18 @@ import { Stage } from './scene/stage.js';
 import { h } from './ui/dom.js';
 import { startReader } from './voice/reader.js';
 import { voice } from './voice/voice.js';
+import { ALL_SOUNDS, measureSound, sfx } from './audio/sfx.js';
 
 updater.start();
 startReader();
+// Every button gives a soft plastic click.
+document.addEventListener(
+  'click',
+  (e) => {
+    if ((e.target as Element | null)?.closest('.btn')) sfx.play('click');
+  },
+  { capture: true },
+);
 void voice.load();
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
@@ -74,7 +83,16 @@ async function boot() {
         team: 'groen',
         rank: 'sergent',
       });
-    Object.assign(window, { app, stage, presenter, kit, testMinigame });
+    Object.assign(window, {
+      app,
+      stage,
+      presenter,
+      kit,
+      testMinigame,
+      sfx,
+      measureSound,
+      ALL_SOUNDS,
+    });
   }
   // A shared link (?rum=1234) joins that game; a reload rejoins the game we were in.
   const room = new URLSearchParams(location.search).get('rum');

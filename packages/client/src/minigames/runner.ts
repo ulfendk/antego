@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clampScore, type MinigameId } from '@antego/shared';
 import type { LineId } from '../generated/lines.js';
 import type { Stage } from '../scene/stage.js';
+import { sfx } from '../audio/sfx.js';
 import { button, h, line } from '../ui/dom.js';
 import type { Minigame, MinigameContext, Pointer } from './base.js';
 import { Faldskaerm } from './faldskaerm.js';
@@ -75,6 +76,7 @@ export async function runMinigame(
     );
     for (const id of ['minispil.klar', 'minispil.parat', 'minispil.start'] as const) {
       layer.replaceChildren(h('div', { class: 'countdown' }, line(id, 'span')));
+      sfx.play(id === 'minispil.start' ? 'beepHigh' : 'beep');
       await wait(id === 'minispil.start' ? 450 : 650);
     }
     const bar = h('div', { class: 'bar' });
@@ -102,6 +104,7 @@ export async function runMinigame(
       mg.running = true;
     });
     clearInterval(tick);
+    sfx.play('whistle');
     canvas.removeEventListener('pointerdown', onDown);
     canvas.removeEventListener('pointermove', onMove);
     removeEventListener('pointerup', onUp);

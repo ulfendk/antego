@@ -26,6 +26,7 @@ export const LINES = {
   "menu.grafik_mellem": "Normal",
   "menu.grafik_lav": "Hurtig",
   "menu.lyd": "Oplæsning",
+  "menu.lydeffekter": "Lydeffekter",
   "menu.til": "Til",
   "menu.fra": "Fra",
   "menu.indstillinger": "Indstillinger",
