@@ -6,7 +6,7 @@ import { RANK_ORDER, type Rank, type Team } from '@antego/shared';
 import { plasticMaterial } from './plastic.js';
 import { TEAM_COLORS, badge, emblem, radial } from './textures.js';
 
-interface Model {
+export interface Model {
   geo: THREE.BufferGeometry;
   /** Meshopt stores quantized positions; the node transform scales them back to board units. */
   matrix: THREE.Matrix4;
@@ -15,6 +15,38 @@ interface Model {
 interface ModelSet {
   lod0: Model;
   lod1: Model;
+}
+
+let gltfLoader: GLTFLoader | null = null;
+
+/** Loads one of the Blender-built models; baked AO/curvature moves from `color` to `aoCurv`. */
+export async function loadModel(file: string): Promise<Model> {
+  if (!gltfLoader) {
+    gltfLoader = new GLTFLoader();
+    gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+  }
+  const gltf = await gltfLoader.loadAsync(`/models/${file}`);
+  gltf.scene.updateMatrixWorld(true);
+  let mesh: THREE.Mesh | null = null;
+  gltf.scene.traverse((o) => {
+    if (!mesh && (o as THREE.Mesh).isMesh) mesh = o as THREE.Mesh;
+  });
+  const m = mesh as unknown as THREE.Mesh;
+  const g = m.geometry;
+  const col = g.getAttribute('color');
+  if (col) {
+    g.setAttribute('aoCurv', col);
+    g.deleteAttribute('color');
+  }
+  return { geo: g, matrix: m.matrixWorld.clone() };
+}
+
+/** A mesh of a loaded model, in model units. */
+export function modelMesh(model: Model, material: THREE.Material): THREE.Mesh {
+  const mesh = new THREE.Mesh(model.geo, material);
+  mesh.applyMatrix4(model.matrix);
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
 }
 
 /** A standalone soldier mesh in board units (used by the mini-games). */
@@ -53,28 +85,13 @@ export class PieceKit {
 
   static async load(lod0Distance: number, onProgress?: (k: number) => void): Promise<PieceKit> {
     const kit = new PieceKit(lod0Distance);
-    const loader = new GLTFLoader();
-    loader.setMeshoptDecoder(MeshoptDecoder);
-    const grab = async (file: string): Promise<Model> => {
-      const gltf = await loader.loadAsync(`/models/${file}`);
-      gltf.scene.updateMatrixWorld(true);
-      let mesh: THREE.Mesh | null = null;
-      gltf.scene.traverse((o) => {
-        if (!mesh && (o as THREE.Mesh).isMesh) mesh = o as THREE.Mesh;
-      });
-      const m = mesh as unknown as THREE.Mesh;
-      const g = m.geometry;
-      const col = g.getAttribute('color');
-      if (col) {
-        g.setAttribute('aoCurv', col);
-        g.deleteAttribute('color');
-      }
-      return { geo: g, matrix: m.matrixWorld.clone() };
-    };
     let done = 0;
     await Promise.all(
       RANK_ORDER.map(async (rank) => {
-        const [lod0, lod1] = await Promise.all([grab(`${rank}.glb`), grab(`${rank}-lod1.glb`)]);
+        const [lod0, lod1] = await Promise.all([
+          loadModel(`${rank}.glb`),
+          loadModel(`${rank}-lod1.glb`),
+        ]);
         kit.models.set(rank, { lod0, lod1 });
         onProgress?.(++done / RANK_ORDER.length);
       }),

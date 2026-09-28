@@ -11,5 +11,5 @@ RUN apt-get update \
 
 ENV HOME=/tmp PYTHONUNBUFFERED=1
 WORKDIR /app
-COPY build.py .
+COPY build.py vehicles.py ./
 ENTRYPOINT ["blender", "--background", "--factory-startup", "--python", "build.py", "--"]

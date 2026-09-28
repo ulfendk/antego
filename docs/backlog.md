@@ -6,6 +6,10 @@ Ideas and follow-ups that aren't scheduled yet. Newest at the bottom of each sec
 
 - **Mini-game demos:** a short animated demo on each mini-game's intro card.
 
+## Easter eggs
+
+- Drive the toy jeep and tank around on the playing board itself (steering round the soldiers).
+
 ## 3–4 players
 
 - Online 3–4 player rooms: seats, computer players filling empty seats, lobby.

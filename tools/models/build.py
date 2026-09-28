@@ -200,7 +200,7 @@ class Sculpt:
         lo, hi = _box_bounds(c, R, radii)
         self.add(fn, lo, hi, k)
 
-    def box(self, c, half, R, rnd, k):
+    def box(self, c, half, R, rnd, k, op="add"):
         c, R = V(c), rot3(R)
         hx, hy, hz = (max(h - rnd, 1e-5) for h in half)
 
@@ -211,9 +211,9 @@ class Sculpt:
             return outside + np.minimum(np.maximum(qx, np.maximum(qy, qz)), 0) - rnd
 
         lo, hi = _box_bounds(c, R, half)
-        self.add(fn, lo, hi, k)
+        self.add(fn, lo, hi, k, op)
 
-    def cylinder(self, a, b, r, rnd, k):
+    def cylinder(self, a, b, r, rnd, k, op="add"):
         a, b = V(a), V(b)
         h = (b - a).length / 2
         c = (a + b) / 2
@@ -227,7 +227,33 @@ class Sculpt:
             return np.minimum(np.maximum(dx, dz), 0) + np.sqrt(np.maximum(dx, 0) ** 2 + np.maximum(dz, 0) ** 2) - rnd
 
         lo, hi = _box_bounds(c, R, (r, r, h))
-        self.add(fn, lo, hi, k)
+        self.add(fn, lo, hi, k, op)
+
+    def star(self, c, r, height, R, k, rf=0.45, edge=0.0, op="add"):
+        """Five-pointed star in the local xy plane (a point along +y), extruded along local z."""
+        c, R = V(c), rot3(R)
+        k1x, k1y = 0.809016994375, -0.587785252292
+        k2x, k2y = -k1x, k1y
+        bax, bay = rf * -k1y, rf * k1x - 1.0
+        bb = bax * bax + bay * bay
+        hh = height / 2 - edge
+
+        def fn(X, Y, Z):
+            x, y, z = _local(X, Y, Z, c, R)
+            px, py = np.abs(x), y
+            d = np.maximum(k1x * px + k1y * py, 0.0)
+            px, py = px - 2 * d * k1x, py - 2 * d * k1y
+            d = np.maximum(k2x * px + k2y * py, 0.0)
+            px, py = px - 2 * d * k2x, py - 2 * d * k2y
+            px, py = np.abs(px), py - r
+            h = np.clip((px * bax + py * bay) / bb, 0.0, r)
+            qx, qy = px - bax * h, py - bay * h
+            d2 = np.sqrt(qx * qx + qy * qy) * np.sign(py * bax - px * bay) + edge
+            wz = np.abs(z) - hh
+            return np.minimum(np.maximum(d2, wz), 0) + np.sqrt(np.maximum(d2, 0) ** 2 + np.maximum(wz, 0) ** 2) - edge
+
+        lo, hi = _box_bounds(c, R, (r, r, height / 2))
+        self.add(fn, lo, hi, k, op)
 
     def torus(self, c, major, minor, R, k, scale=(1, 1, 1)):
         c, R = V(c), rot3(R)
@@ -271,11 +297,12 @@ class Sculpt:
 
     # --- evaluation
 
-    def mesh(self, voxel):
+    def mesh(self, voxel, floor=True):
         pad = 3 * voxel + SOFT
         lo = V((min(p.lo.x for p in self.prims), min(p.lo.y for p in self.prims), min(p.lo.z for p in self.prims))) - V((pad,) * 3)
         hi = V((max(p.hi.x for p in self.prims), max(p.hi.y for p in self.prims), max(p.hi.z for p in self.prims))) + V((pad,) * 3)
-        lo.z = max(lo.z, -voxel * 2)
+        if floor:
+            lo.z = max(lo.z, -voxel * 2)
         n = [int(math.ceil((hi[i] - lo[i]) / voxel)) + 1 for i in range(3)]
         axes = [np.float32(lo[i]) + np.arange(n[i], dtype=np.float32) * np.float32(voxel) for i in range(3)]
         D = np.full(n, 1.0, dtype=np.float32)
@@ -295,8 +322,8 @@ class Sculpt:
             block = D[sl[0], sl[1], sl[2]]
             D[sl[0], sl[1], sl[2]] = smax(block, -d, p.k) if p.op == "sub" else smin(block, d, p.k)
         # Nothing below the table.
-        Zfull = axes[2][None, None, :]
-        D = np.maximum(D, -Zfull)
+        if floor:
+            D = np.maximum(D, -axes[2][None, None, :])
         verts, faces, _normals, _ = measure.marching_cubes(D, level=0.0, spacing=(voxel, voxel, voxel))
         verts += np.array([lo.x, lo.y, lo.z], dtype=np.float32)
         me = bpy.data.meshes.new("figure")
@@ -333,14 +360,17 @@ class Layer:
         self.s.ellipsoid(c, (sx, sy, sz), R, self.k)
 
     # hard props
-    def box(self, center, size, R=Matrix.Identity(3), bevel=0.004):
-        self.s.box(center, tuple(x / 2 for x in size), R, bevel, self.k)
+    def box(self, center, size, R=Matrix.Identity(3), bevel=0.004, op="add"):
+        self.s.box(center, tuple(x / 2 for x in size), R, bevel, self.k, op)
 
-    def cylinder(self, a, b, r1, r2=None, rnd=0.003):
+    def cylinder(self, a, b, r1, r2=None, rnd=0.003, op="add"):
         if r2 is None or abs(r2 - r1) < 1e-6:
-            self.s.cylinder(a, b, r1, rnd, self.k)
+            self.s.cylinder(a, b, r1, rnd, self.k, op)
         else:
-            self.s.cone(a, b, r1, r2, self.k)
+            self.s.cone(a, b, r1, r2, self.k, op)
+
+    def star(self, center, r, height, R=Matrix.Identity(3), edge=0.002):
+        self.s.star(center, r, height, R, self.k, edge=edge)
 
     def sphere(self, c, r, scale=(1, 1, 1)):
         self.s.ellipsoid(c, (r * scale[0], r * scale[1], r * scale[2]), Matrix.Identity(3), self.k)
@@ -869,8 +899,11 @@ def preview(obj, path, angle=0.0):
 
     cam = link(bpy.data.objects.new("cam", bpy.data.cameras.new("cam")))
     cam.data.lens = 70
-    target = V((0, -0.02, 0.4))
-    cam.location = V((0.8, -2.0, 0.95))
+    # Framed for a soldier; bigger things (the vehicles) pull the camera back.
+    f = max(1.0, max(obj.dimensions) / 0.95)
+    obj.location.z = max(0.0, -min(v.co.z for v in obj.data.vertices))
+    target = V((0, -0.02, 0.4 * min(f, 1.2)))
+    cam.location = V((0.8, -2.0, 0.95)) * f
     cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     for loc, energy, size in (((1.2, -1.2, 1.8), 90, 1.2), ((-1.6, -0.6, 0.8), 30, 1.5), ((0.2, 1.8, 1.2), 50, 0.8)):
@@ -943,6 +976,47 @@ def main():
             bpy.data.objects.remove(lod1)
             args.cache.mkdir(parents=True, exist_ok=True)
             preview(lod0, args.cache / f"{rank}.png", args.angle)
+
+    # Easter-egg vehicles: one LOD, hashed on their own sculpt file too.
+    sys.path.insert(0, str(Path(__file__).parent))
+    import vehicles
+
+    me = sys.modules[__name__]
+    vehicle_hash = hashlib.sha1(Path(__file__).read_bytes() + Path(vehicles.__file__).read_bytes()).hexdigest()[:12]
+    for name, (_fn, _voxel, _floor, tris) in vehicles.MODELS.items():
+        if only and name not in only:
+            continue
+        key = f"{vehicle_hash}-{name}"
+        up_to_date = manifest.get(name, {}).get("hash") == key and (out / f"{name}.glb").exists()
+        if up_to_date and not args.force and not args.preview:
+            continue
+        print(f"[models] {name}", flush=True)
+        reset()
+        raw = vehicles.build(name, me)
+        sm = raw.modifiers.new("smooth", "CORRECTIVE_SMOOTH")
+        sm.iterations = 2
+        sm.smooth_type = "SIMPLE"
+        sm.use_only_smooth = True
+        apply_modifiers(raw)
+        obj = decimate(raw, tris, name)
+        bpy.data.objects.remove(raw)
+        # Decimating thin, dense parts can leave degenerate faces the exporter refuses.
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bmesh.ops.dissolve_degenerate(bm, edges=bm.edges, dist=1e-6)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_area() < 1e-12], context="FACES")
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.validate()
+        bake_vertex_data(obj)
+        export(obj, out / f"{name}.glb")
+        count = sum(len(p.vertices) - 2 for p in obj.data.polygons)
+        manifest[name] = {"hash": key, "file": f"{name}.glb", "tris": count, "parts": vehicles.PARTS.get(name)}
+        print(f"[models]   {count} tris", flush=True)
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        if args.preview:
+            args.cache.mkdir(parents=True, exist_ok=True)
+            preview(obj, args.cache / f"{name}.png", args.angle)
 
 
 if __name__ == "__main__":

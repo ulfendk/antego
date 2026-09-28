@@ -64,13 +64,15 @@ const LAYOUTS: Record<BoardId, BoxLayout> = {
 
 const layout = () => LAYOUTS[activeBoard().id];
 
-/** Toy box centres and how far their flaps reach (the easter-egg tank hides behind one). */
-export function toyBoxCentres(): { centre: THREE.Vector3; radius: number }[] {
+/** Toy box centres and their footprint half-sizes, open flaps included (the easter-egg tank drives round them). */
+export function toyBoxCentres(): { centre: THREE.Vector3; halfX: number; halfZ: number }[] {
   const L = layout();
-  const radius = Math.max(L.w, L.d) / 2 + L.flap * 0.6;
+  const halfX = L.w / 2 + L.wall + L.flap;
+  const halfZ = L.d / 2 + L.wall + L.flap;
   return (Object.keys(activeBoard().forward) as Team[]).map((t) => ({
     centre: L.centre(t),
-    radius,
+    halfX,
+    halfZ,
   }));
 }
 

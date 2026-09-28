@@ -14,6 +14,7 @@ docker run --rm \
   -v "$PWD/$RAW:/out" \
   -v "$PWD/tools/models/.cache:/cache" \
   -v "$PWD/tools/models/build.py:/app/build.py:ro" \
+  -v "$PWD/tools/models/vehicles.py:/app/vehicles.py:ro" \
   --user "$(id -u):$(id -g)" \
   antego-models --out /out --cache /cache "$@"
 

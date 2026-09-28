@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { sfx } from '../audio/sfx.js';
 import { activeBoard } from './board.js';
+import { loadModel, modelMesh } from './pieces.js';
 import { plasticMaterial } from './plastic.js';
 import type { Presenter } from './presenter.js';
 import { toyBoxCentres } from './props.js';
@@ -13,14 +13,23 @@ import { ease, tween, wait } from './tween.js';
  * past behind enemy lines, a paper plane gliding over, a tank peeking out from behind a toy
  * box, a fallen soldier sitting up in the toy box to wave. One every minute or so.
  */
+/** Toy vehicles are sculpted to the soldiers' scale (see tools/models/vehicles.py). */
+const VEHICLE_SCALE = 1.1;
+/** Distance from a toy box's flaps to the tank's centre line (half the tank's width, and some). */
+const TANK_CLEARANCE = 0.75;
+const WHEEL_R = 0.2;
+
 export class EasterEggs {
   private next = 30_000 + Math.random() * 30_000;
   private busy = false;
   private last = -1;
-  private readonly olive = plasticMaterial('#56663a', false);
-  private readonly dark = new THREE.MeshStandardMaterial({ color: '#23261c', roughness: 0.8 });
-  private jeep = this.buildJeep();
-  private tank = this.buildTank();
+  private readonly olive = plasticMaterial('#56663a');
+  private readonly rubber = plasticMaterial('#2c2d28');
+  /** The toy vehicles, forward along +X; loaded after start-up (null until then). */
+  private jeep: THREE.Group | null = null;
+  private wheels: THREE.Object3D[] = [];
+  private tank: THREE.Group | null = null;
+  private turret: THREE.Object3D | null = null;
   private plane = this.buildPlane();
   private dust: THREE.Mesh[] = [];
   private dustGeo = new THREE.SphereGeometry(0.12, 8, 6);
@@ -35,10 +44,10 @@ export class EasterEggs {
     private stage: Stage,
     private presenter: Presenter,
   ) {
-    for (const o of [this.jeep, this.tank, this.plane]) {
-      o.visible = false;
-      scene.add(o);
-    }
+    this.plane.visible = false;
+    scene.add(this.plane);
+    // Not needed for the first half minute: don't compete with the soldiers while loading.
+    setTimeout(() => void this.loadVehicles().catch(() => undefined), 5000);
   }
 
   /** Called every frame (not during mini-games). */
@@ -53,7 +62,8 @@ export class EasterEggs {
     this.play(pick);
   }
 
-  private readonly eggs = [
+  /** Each resolves false if it had nothing to show. */
+  private readonly eggs: (() => Promise<boolean>)[] = [
     () => this.jeepRun(),
     () => this.planeGlide(),
     () => this.tankPeek(),
@@ -63,41 +73,57 @@ export class EasterEggs {
   /** Run one now (0 jeep, 1 plane, 2 tank, 3 wave); `?debug` exposes this as eggs.play(i). */
   play(i: number) {
     if (this.busy) return;
+    if ((i === 0 || i === 2) && !this.jeep) {
+      this.next = 2000;
+      return;
+    }
     this.last = i;
     this.busy = true;
     void this.eggs[i]!()
-      .catch(() => undefined)
-      .finally(() => (this.busy = false));
+      .catch(() => false)
+      .then((played) => {
+        this.busy = false;
+        // Nothing to show from here (no fallen soldiers, no box in view): try another soon.
+        if (!played) this.next = 2000;
+      });
   }
 
   // ---------------------------------------------------------------- the jeep
 
-  private buildJeep() {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new RoundedBoxGeometry(1.5, 0.32, 0.72, 3, 0.06), this.olive);
-    body.position.y = 0.34;
-    const hood = new THREE.Mesh(new RoundedBoxGeometry(0.55, 0.14, 0.7, 3, 0.05), this.olive);
-    hood.position.set(0.5, 0.55, 0);
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.68), this.olive);
-    screen.position.set(0.18, 0.66, 0);
-    screen.rotation.z = 0.25;
-    const seat = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.2, 0.6, 2, 0.05), this.dark);
-    seat.position.set(-0.3, 0.56, 0);
-    const spare = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.1, 18), this.dark);
-    spare.rotation.z = Math.PI / 2;
-    spare.position.set(-0.8, 0.42, 0);
-    g.add(body, hood, screen, seat, spare);
-    for (const x of [-0.48, 0.48]) {
-      for (const z of [-0.38, 0.38]) {
-        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.14, 18), this.dark);
-        w.rotation.x = Math.PI / 2;
-        w.position.set(x, 0.19, z);
-        w.userData.wheel = true;
-        g.add(w);
-      }
-    }
-    g.traverse((o) => ((o as THREE.Mesh).castShadow = true));
-    return g;
+  private async loadVehicles() {
+    const [manifest, body, wheel, hull, turret] = await Promise.all([
+      fetch('/models/manifest.json').then(
+        (r) => r.json() as Promise<Record<string, { parts?: number[][] }>>,
+      ),
+      loadModel('jeep.glb'),
+      loadModel('jeep-wheel.glb'),
+      loadModel('tank.glb'),
+      loadModel('tank-turret.glb'),
+    ]);
+    // The models look along +Z; the egg code drives along +X.
+    const vehicle = (...parts: THREE.Object3D[]) => {
+      const outer = new THREE.Group();
+      const inner = new THREE.Group();
+      inner.rotation.y = Math.PI / 2;
+      inner.add(...parts);
+      outer.add(inner);
+      outer.scale.setScalar(VEHICLE_SCALE);
+      outer.visible = false;
+      this.scene.add(outer);
+      return outer;
+    };
+    this.wheels = (manifest['jeep-wheel']?.parts ?? []).map(([x, y, z]) => {
+      const hub = new THREE.Group();
+      hub.position.set(x!, y!, z!);
+      hub.add(modelMesh(wheel, this.rubber));
+      return hub;
+    });
+    this.jeep = vehicle(modelMesh(body, this.olive), ...this.wheels);
+    const [tx, ty, tz] = manifest['tank-turret']?.parts?.[0] ?? [0, 0.5, 0.05];
+    this.turret = new THREE.Group();
+    this.turret.position.set(tx!, ty!, tz!);
+    this.turret.add(modelMesh(turret, this.olive));
+    this.tank = vehicle(modelMesh(hull, this.olive), this.turret);
   }
 
   /** Where "behind enemy lines" is for the camera's army: a lane beyond the far edge. */
@@ -115,7 +141,7 @@ export class EasterEggs {
     const dir = Math.random() < 0.5 ? 1 : -1;
     const a = centre.clone().addScaledVector(across, -17 * dir);
     const b = centre.clone().addScaledVector(across, 17 * dir);
-    const j = this.jeep;
+    const j = this.jeep!;
     j.visible = true;
     j.rotation.y = Math.atan2(-(b.z - a.z), b.x - a.x);
     sfx.play('engine');
@@ -123,11 +149,13 @@ export class EasterEggs {
     await tween(
       3600,
       (k) => {
+        const before = j.position.clone().setY(0);
         j.position.lerpVectors(a, b, k);
-        // Bouncy toy suspension and spinning wheels.
-        j.position.y = Math.abs(Math.sin(k * 60)) * 0.04;
-        j.rotation.z = Math.sin(k * 45) * 0.03;
-        j.children.forEach((w) => w.userData.wheel && (w.rotation.y += 0.5));
+        // Wheels roll with the distance covered; bouncy toy suspension.
+        const roll = before.distanceTo(j.position) / (WHEEL_R * VEHICLE_SCALE);
+        for (const w of this.wheels) w.rotation.x += roll;
+        j.position.y = Math.abs(Math.sin(k * 60)) * 0.03;
+        j.rotation.z = Math.sin(k * 45) * 0.025;
         if (k > puff) {
           puff = k + 0.02;
           this.puff(j.position.clone().addScaledVector(across, -0.8 * dir));
@@ -136,6 +164,7 @@ export class EasterEggs {
       ease.linear,
     );
     j.visible = false;
+    return true;
   }
 
   // ---------------------------------------------------------------- the paper plane
@@ -196,71 +225,58 @@ export class EasterEggs {
       ease.linear,
     );
     p.visible = false;
+    return true;
   }
 
   // ---------------------------------------------------------------- the tank
 
-  private buildTank() {
-    const g = new THREE.Group();
-    const hull = new THREE.Mesh(new RoundedBoxGeometry(1.3, 0.3, 0.8, 3, 0.06), this.olive);
-    hull.position.y = 0.3;
-    for (const z of [-0.45, 0.45]) {
-      const track = new THREE.Mesh(new RoundedBoxGeometry(1.4, 0.26, 0.2, 3, 0.1), this.dark);
-      track.position.set(0, 0.14, z);
-      g.add(track);
-    }
-    const turret = new THREE.Group();
-    const dome = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 0.22, 20), this.olive);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.8, 12), this.olive);
-    barrel.rotation.z = Math.PI / 2;
-    barrel.position.x = 0.5;
-    turret.add(dome, barrel);
-    turret.position.y = 0.55;
-    turret.name = 'turret';
-    g.add(hull, turret);
-    g.traverse((o) => ((o as THREE.Mesh).castShadow = true));
-    return g;
-  }
-
-  /** Peeks out from behind the toy box furthest from the camera, looks around, backs off. */
+  /**
+   * Peeks out from behind the toy box: drives along the box's far side, parallel to a wall and
+   * clear of the flaps, until it is past the corner – then looks around and backs off.
+   */
   private async tankPeek() {
     const cam = this.stage.camera.position;
-    const boxes = toyBoxCentres();
-    if (!boxes.length) return;
-    // Hide behind a box as seen from the camera, then roll out sideways. Prefer the furthest
-    // box whose peek spot is actually on screen.
-    const spots = boxes.map(({ centre: box, radius }) => {
-      const away = box
-        .clone()
-        .sub(new THREE.Vector3(cam.x, 0, cam.z))
-        .setY(0)
-        .normalize();
-      const side = new THREE.Vector3(-away.z, 0, away.x);
-      // Roll out on the side away from the board, never onto it.
-      if (box.clone().add(side).lengthSq() < box.clone().sub(side).lengthSq()) side.negate();
-      const hidden = box.clone().addScaledVector(away, radius * 0.5);
-      const out = hidden.clone().addScaledVector(side, radius + 1);
-      hidden.addScaledVector(side, radius * 0.4);
-      const s = out.clone().project(this.stage.camera);
-      const onScreen = Math.abs(s.x) < 0.85 && Math.abs(s.y) < 0.85 && s.z < 1;
-      return { side, hidden, out, onScreen, far: box.distanceTo(cam) };
-    });
-    const visible = spots.filter((s) => s.onScreen);
-    const pool = visible.length ? visible : spots;
-    const { side, hidden, out } = pool.reduce((a, b) => (b.far > a.far ? b : a));
-    const t = this.tank;
-    const turret = t.getObjectByName('turret')!;
+    const flat = new THREE.Vector3(cam.x, 0, cam.z);
+    type Spot = { dir: THREE.Vector3; hidden: THREE.Vector3; out: THREE.Vector3; score: number };
+    const spots: Spot[] = [];
+    for (const { centre, halfX, halfZ } of toyBoxCentres()) {
+      const towardBox = centre.clone().sub(flat).normalize();
+      for (const [n, halfN, halfT] of [
+        [new THREE.Vector3(1, 0, 0), halfX, halfZ],
+        [new THREE.Vector3(-1, 0, 0), halfX, halfZ],
+        [new THREE.Vector3(0, 0, 1), halfZ, halfX],
+        [new THREE.Vector3(0, 0, -1), halfZ, halfX],
+      ] as const) {
+        const away = n.dot(towardBox); // > 0: this side faces away from the camera
+        if (away < 0.2) continue;
+        const hidden = centre.clone().addScaledVector(n, halfN + TANK_CLEARANCE);
+        for (const sign of [1, -1]) {
+          const dir = new THREE.Vector3(-n.z * sign, 0, n.x * sign);
+          const out = hidden.clone().addScaledVector(dir, halfT + 1.3);
+          const s = out.clone().project(this.stage.camera);
+          if (Math.abs(s.x) > 0.8 || Math.abs(s.y) > 0.8 || s.z > 1) continue;
+          if (nearBoard(out, 1.1) || nearBoard(hidden, 1.1)) continue;
+          spots.push({ dir, hidden, out, score: away + centre.distanceTo(cam) * 0.05 });
+        }
+      }
+    }
+    if (!spots.length) return false;
+    const { dir, hidden, out } = spots.reduce((a, b) => (b.score > a.score ? b : a));
+    const t = this.tank!;
+    const turret = this.turret!;
     t.visible = true;
     t.position.copy(hidden);
-    t.rotation.y = Math.atan2(-side.z, side.x);
+    t.rotation.y = Math.atan2(-dir.z, dir.x);
+    const drive = 500 + hidden.distanceTo(out) * 260;
     sfx.play('squeak');
-    await tween(900, (k) => t.position.lerpVectors(hidden, out, k), ease.out);
+    await tween(drive, (k) => t.position.lerpVectors(hidden, out, k), ease.out);
     await tween(700, (k) => (turret.rotation.y = Math.sin(k * Math.PI) * 0.9), ease.inOut);
     await wait(400);
     await tween(700, (k) => (turret.rotation.y = -Math.sin(k * Math.PI) * 0.9), ease.inOut);
     sfx.play('squeak');
-    await tween(900, (k) => t.position.lerpVectors(out, hidden, k), ease.inOut);
+    await tween(drive, (k) => t.position.lerpVectors(out, hidden, k), ease.inOut);
     t.visible = false;
+    return true;
   }
 
   // ---------------------------------------------------------------- the waving soldier
@@ -273,7 +289,7 @@ export class EasterEggs {
       return Math.abs(s.x) < 0.9 && Math.abs(s.y) < 0.9 && s.z < 1;
     });
     const who = fallen[Math.floor(Math.random() * fallen.length)];
-    if (!who) return;
+    if (!who) return false;
     const lying = who.body.rotation.z;
     const upright = lying * 0.25;
     await tween(500, (k) => (who.body.rotation.z = lying + (upright - lying) * k), ease.out);
@@ -284,6 +300,7 @@ export class EasterEggs {
     );
     await tween(500, (k) => (who.body.rotation.z = upright + (lying - upright) * k), ease.bounce);
     who.rig.rotation.z = 0;
+    return true;
   }
 
   // ---------------------------------------------------------------- dust
@@ -311,4 +328,18 @@ export class EasterEggs {
       }
     }
   }
+}
+
+/** Whether anything within `margin` of p stands on a playable square of the active board. */
+function nearBoard(p: THREE.Vector3, margin: number) {
+  const board = activeBoard();
+  const half = board.size / 2;
+  for (const dx of [-margin, 0, margin]) {
+    for (const dz of [-margin, 0, margin]) {
+      const x = Math.floor(p.x + dx + half);
+      const y = Math.floor(p.z + dz + half);
+      if (board.playable({ x, y })) return true;
+    }
+  }
+  return false;
 }

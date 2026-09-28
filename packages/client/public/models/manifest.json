@@ -1,74 +1,125 @@
 {
   "sergent": {
-    "hash": "da8ce24df2a7-sergent",
+    "hash": "fda16df5d8a1-sergent",
     "file": "sergent.glb",
     "lod1": "sergent-lod1.glb",
     "tris": 30000
   },
   "marskal": {
-    "hash": "da8ce24df2a7-marskal",
+    "hash": "fda16df5d8a1-marskal",
     "file": "marskal.glb",
     "lod1": "marskal-lod1.glb",
     "tris": 29999
   },
   "general": {
-    "hash": "da8ce24df2a7-general",
+    "hash": "fda16df5d8a1-general",
     "file": "general.glb",
     "lod1": "general-lod1.glb",
     "tris": 30000
   },
   "oberst": {
-    "hash": "da8ce24df2a7-oberst",
+    "hash": "fda16df5d8a1-oberst",
     "file": "oberst.glb",
     "lod1": "oberst-lod1.glb",
     "tris": 30000
   },
   "major": {
-    "hash": "da8ce24df2a7-major",
+    "hash": "fda16df5d8a1-major",
     "file": "major.glb",
     "lod1": "major-lod1.glb",
     "tris": 30000
   },
   "kaptajn": {
-    "hash": "da8ce24df2a7-kaptajn",
+    "hash": "fda16df5d8a1-kaptajn",
     "file": "kaptajn.glb",
     "lod1": "kaptajn-lod1.glb",
     "tris": 30000
   },
   "loejtnant": {
-    "hash": "da8ce24df2a7-loejtnant",
+    "hash": "fda16df5d8a1-loejtnant",
     "file": "loejtnant.glb",
     "lod1": "loejtnant-lod1.glb",
     "tris": 30000
   },
   "minoer": {
-    "hash": "da8ce24df2a7-minoer",
+    "hash": "fda16df5d8a1-minoer",
     "file": "minoer.glb",
     "lod1": "minoer-lod1.glb",
     "tris": 30000
   },
   "spejder": {
-    "hash": "da8ce24df2a7-spejder",
+    "hash": "fda16df5d8a1-spejder",
     "file": "spejder.glb",
     "lod1": "spejder-lod1.glb",
     "tris": 30000
   },
   "spion": {
-    "hash": "da8ce24df2a7-spion",
+    "hash": "fda16df5d8a1-spion",
     "file": "spion.glb",
     "lod1": "spion-lod1.glb",
     "tris": 30000
   },
   "mine": {
-    "hash": "da8ce24df2a7-mine",
+    "hash": "fda16df5d8a1-mine",
     "file": "mine.glb",
     "lod1": "mine-lod1.glb",
     "tris": 30000
   },
   "flag": {
-    "hash": "da8ce24df2a7-flag",
+    "hash": "fda16df5d8a1-flag",
     "file": "flag.glb",
     "lod1": "flag-lod1.glb",
     "tris": 30000
+  },
+  "jeep-wheel": {
+    "hash": "385c6ddfff06-jeep-wheel",
+    "file": "jeep-wheel.glb",
+    "tris": 8000,
+    "parts": [
+      [
+        -0.4,
+        0.2,
+        0.55
+      ],
+      [
+        0.4,
+        0.2,
+        0.55
+      ],
+      [
+        -0.4,
+        0.2,
+        -0.55
+      ],
+      [
+        0.4,
+        0.2,
+        -0.55
+      ]
+    ]
+  },
+  "jeep": {
+    "hash": "385c6ddfff06-jeep",
+    "file": "jeep.glb",
+    "tris": 59999,
+    "parts": null
+  },
+  "tank": {
+    "hash": "385c6ddfff06-tank",
+    "file": "tank.glb",
+    "tris": 59996,
+    "parts": null
+  },
+  "tank-turret": {
+    "hash": "385c6ddfff06-tank-turret",
+    "file": "tank-turret.glb",
+    "tris": 40000,
+    "parts": [
+      [
+        0.0,
+        0.5,
+        0.05
+      ]
+    ]
   }
 }
