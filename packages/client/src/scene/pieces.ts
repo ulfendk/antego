@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RANK_ORDER, type Rank, type Team } from '@antego/shared';
 import { plasticMaterial } from './plastic.js';
-import { TEAM_COLORS, badge, cardFace, radial } from './textures.js';
+import { TEAM_COLORS, badge, emblem, radial } from './textures.js';
 
 interface Model {
   geo: THREE.BufferGeometry;
@@ -34,15 +35,17 @@ export class PieceKit {
     brun: plasticMaterial(TEAM_COLORS.brun.plastic),
   };
   private badges = new Map<string, THREE.SpriteMaterial>();
-  private cards = new Map<Team, THREE.Material[]>();
+  private tiles = new Map<Team, { body: THREE.Material; emblem: THREE.Material }>();
   readonly shadowMat = new THREE.MeshBasicMaterial({
     map: radial('rgba(0,0,0,0.55)', 'rgba(0,0,0,0)'),
     transparent: true,
     depthWrite: false,
   });
   readonly shadowGeo = new THREE.PlaneGeometry(0.95, 0.85).rotateX(-Math.PI / 2);
-  readonly cardGeo = new THREE.BoxGeometry(0.56, 0.66, 0.07);
-  readonly standGeo = new THREE.BoxGeometry(0.44, 0.03, 0.26);
+  /** Hidden enemy pieces: an upright Stratego-style plastic tile on a little foot. */
+  readonly tileGeo = new RoundedBoxGeometry(0.58, 0.68, 0.12, 4, 0.045);
+  readonly footGeo = new RoundedBoxGeometry(0.46, 0.05, 0.3, 3, 0.02);
+  readonly emblemGeo = new THREE.PlaneGeometry(0.44, 0.44);
 
   constructor(public lod0Distance: number) {}
 
@@ -87,20 +90,20 @@ export class PieceKit {
     return m;
   }
 
-  card(team: Team) {
-    let m = this.cards.get(team);
+  tile(team: Team) {
+    let m = this.tiles.get(team);
     if (!m) {
-      const side = new THREE.MeshStandardMaterial({
-        color: TEAM_COLORS[team].card,
-        roughness: 0.7,
-      });
-      const face = new THREE.MeshPhysicalMaterial({
-        map: cardFace(team),
-        roughness: 0.45,
-        clearcoat: 0.4,
-      });
-      m = [side, side, side, side, face, face];
-      this.cards.set(team, m);
+      m = {
+        body: plasticMaterial(TEAM_COLORS[team].plastic, false),
+        emblem: new THREE.MeshStandardMaterial({
+          map: emblem(team),
+          transparent: true,
+          roughness: 0.5,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+        }),
+      };
+      this.tiles.set(team, m);
     }
     return m;
   }
@@ -108,7 +111,7 @@ export class PieceKit {
 
 export const PIECE_SCALE = 1.3;
 
-/** One piece on the table: a soldier (or a hidden card for unknown enemies), its contact shadow and badge. */
+/** One piece on the table: a soldier (or a hidden tile for unknown enemies), its contact shadow and badge. */
 export class PieceObject extends THREE.Group {
   rank: Rank | null = null;
   /** The part that tips over, hops and lifts (the shadow stays on the board). */
@@ -157,14 +160,24 @@ export class PieceObject extends THREE.Group {
       lod.addLevel(lo, this.kit.lod0Distance);
       this.body.add(lod);
     } else {
-      const card = new THREE.Mesh(this.kit.cardGeo, this.kit.card(this.team));
-      card.position.y = 0.36;
-      card.rotation.x = -0.06;
-      card.castShadow = true;
-      const stand = new THREE.Mesh(this.kit.standGeo, this.kit.card(this.team)[0]);
-      stand.position.y = 0.015;
-      stand.castShadow = stand.receiveShadow = true;
-      this.body.add(card, stand);
+      // Rank unknown: the army's plastic tile, embossed emblem on both faces.
+      const m = this.kit.tile(this.team);
+      const tile = new THREE.Group();
+      const slab = new THREE.Mesh(this.kit.tileGeo, m.body);
+      slab.castShadow = slab.receiveShadow = true;
+      tile.add(slab);
+      for (const side of [1, -1]) {
+        const e = new THREE.Mesh(this.kit.emblemGeo, m.emblem);
+        e.position.set(0, 0.03, side * 0.061);
+        if (side < 0) e.rotation.y = Math.PI;
+        tile.add(e);
+      }
+      tile.position.y = 0.38;
+      tile.rotation.x = -0.07;
+      const foot = new THREE.Mesh(this.kit.footGeo, m.body);
+      foot.position.y = 0.025;
+      foot.castShadow = foot.receiveShadow = true;
+      this.body.add(tile, foot);
     }
     this.setBadge(showBadge);
   }

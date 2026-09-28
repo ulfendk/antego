@@ -157,9 +157,9 @@ export class Stage {
       // Tilt-shift sells the miniature scale: sharp across the board, soft at the top and bottom.
       effects.push(
         new TiltShiftEffect({
-          offset: 0.05,
-          focusArea: 0.55,
-          feather: 0.35,
+          offset: 0.08,
+          focusArea: 0.78,
+          feather: 0.25,
           kernelSize: KernelSize.SMALL,
         }),
       );
@@ -283,10 +283,21 @@ export class Stage {
     });
   }
 
+  /** Behind the menus: a slow cinematic drift around the table. */
+  idleOrbit(on: boolean) {
+    this.controls.autoRotate = on;
+    this.controls.autoRotateSpeed = 0.25;
+    if (on) {
+      this.controls.minAzimuthAngle = -Infinity;
+      this.controls.maxAzimuthAngle = Infinity;
+    }
+  }
+
   /** Swing the camera round to an army's side of the table. */
   setSide(team: Team, animate = true) {
     this.side = team;
     this.focused = false;
+    this.controls.autoRotate = false;
     const f = this.framing(team);
     if (!animate) {
       this.controls.target.copy(f.target);

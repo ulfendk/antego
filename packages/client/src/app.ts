@@ -68,6 +68,7 @@ export class App {
 
   menu() {
     this.leaveGame();
+    this.stage.idleOrbit(true);
     this.show(
       h(
         'div',

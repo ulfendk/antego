@@ -5,19 +5,24 @@ import * as THREE from 'three';
  * R = ambient occlusion, G = curvature (0.5 flat, >0.5 convex edges). The shader darkens
  * crevices, lightens worn edges and fakes a little light bleeding through thin parts.
  */
-export function plasticMaterial(color: THREE.ColorRepresentation): THREE.MeshPhysicalMaterial {
+export function plasticMaterial(
+  color: THREE.ColorRepresentation,
+  baked = true,
+): THREE.MeshPhysicalMaterial {
   const base = new THREE.Color(color);
   const m = new THREE.MeshPhysicalMaterial({
     color: base,
-    roughness: 0.46,
+    roughness: 0.4,
     metalness: 0,
-    clearcoat: 0.18,
-    clearcoatRoughness: 0.45,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.35,
     sheen: 0.35,
     sheenRoughness: 0.55,
     sheenColor: base.clone().lerp(new THREE.Color('#ffffff'), 0.35),
     specularIntensity: 0.6,
   });
+  // Plain geometry (tiles, props) has no baked data: same plastic, no per-vertex shading.
+  if (!baked) return m;
   m.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
       .replace(

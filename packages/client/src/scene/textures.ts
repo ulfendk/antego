@@ -407,20 +407,92 @@ export function boardEdge() {
   );
 }
 
-/** A warm oak table, tileable. */
+/**
+ * An oak table top, tileable: four planks per tile with their own tone, long grain along the
+ * plank, a butt joint somewhere along each one, dark seams between them and the odd knot.
+ */
 export function woodMaps(size = 1024) {
-  const grain = fbm(size, size, 41, 2, 5, 10);
-  const fine = fbm(size, size, 43, 8, 3, 30);
-  const color = noiseCanvas(size, size, grain, (v, i) => {
-    const ring = 0.5 + 0.5 * Math.sin(v * 70 + fine[i]! * 6);
-    const streak = fine[i]! * 0.35;
-    const base = mix([104, 70, 42], [150, 104, 62], ring * 0.7 + streak);
-    return [base[0]!, base[1]!, base[2]!, 255];
+  const planks = 4;
+  const pw = size / planks;
+  const rng = createRng(4242);
+  const grain = fbm(size, size, 41, 28, 4, 0.06);
+  const fine = fbm(size, size, 43, 90, 2, 0.05);
+  const blotch = fbm(size, size, 47, 3, 3);
+  const info = Array.from({ length: planks }, () => ({
+    tone: 0.75 + rng() * 0.35,
+    joint: rng() * size,
+    phase: rng() * 10,
+    knots: Array.from({ length: 1 + Math.floor(rng() * 2) }, () => ({
+      x: 0.25 + rng() * 0.5,
+      y: rng() * size,
+      r: 6 + rng() * 10,
+    })),
+  }));
+  const light = [156, 116, 80];
+  const dark = [96, 66, 44];
+  const colorImg = new Uint8ClampedArray(size * size * 4);
+  const height = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = y * size + x;
+      const p = Math.min(planks - 1, Math.floor(x / pw));
+      const pl = info[p]!;
+      const lx = x - p * pw;
+      // Grain: stretched noise turned into growth rings, warped slightly across the plank.
+      let ring = 0.5 + 0.5 * Math.sin(grain[i]! * 38 + pl.phase + (lx / pw) * 3);
+      let h = 0.5 + ring * 0.12 + fine[i]! * 0.08;
+      // Knots swirl the rings around a dark centre.
+      for (const k of pl.knots) {
+        const dx = lx - k.x * pw;
+        let dy = y - k.y;
+        if (dy > size / 2) dy -= size;
+        if (dy < -size / 2) dy += size;
+        const d = Math.hypot(dx, dy * 0.45);
+        if (d < k.r * 5) {
+          const w = 1 - d / (k.r * 5);
+          ring = ring * (1 - w) + (0.5 + 0.5 * Math.sin(d * 0.9)) * w;
+          if (d < k.r) {
+            ring *= 0.35;
+            h -= 0.1;
+          }
+        }
+      }
+      const t = Math.min(1, Math.max(0, ring * 0.75 + fine[i]! * 0.25));
+      let r = dark[0]! + (light[0]! - dark[0]!) * t;
+      let g = dark[1]! + (light[1]! - dark[1]!) * t;
+      let b = dark[2]! + (light[2]! - dark[2]!) * t;
+      const tone = pl.tone * (0.92 + blotch[i]! * 0.16);
+      r *= tone;
+      g *= tone;
+      b *= tone;
+      // Seams between planks and a butt joint along each one.
+      const seam = Math.min(lx, pw - lx, Math.abs(y - pl.joint) * 1.4);
+      if (seam < 2.2) {
+        r *= 0.45;
+        g *= 0.42;
+        b *= 0.4;
+        h -= 0.35;
+      } else if (seam < 5) {
+        h -= 0.08 * (1 - seam / 5); // softened plank edges
+      }
+      colorImg[i * 4] = r;
+      colorImg[i * 4 + 1] = g;
+      colorImg[i * 4 + 2] = b;
+      colorImg[i * 4 + 3] = 255;
+      height[i] = h;
+    }
+  }
+  const { c, g } = canvas(size);
+  g.putImageData(new ImageData(colorImg, size, size), 0, 0);
+  const rough = noiseCanvas(size, size, fine, (v, i) => {
+    const r = 120 + v * 50 + (height[i]! < 0.3 ? 60 : 0);
+    return [r, r, r, 255];
   });
-  const h = new Float32Array(size * size);
-  for (let i = 0; i < h.length; i++)
-    h[i] = 0.5 + 0.5 * Math.sin(grain[i]! * 70 + fine[i]! * 6) * 0.3 + fine[i]! * 0.2;
-  return { map: tex(color, true, true), normal: tex(heightToNormal(h, size, 3), false, true) };
+  return {
+    map: tex(c, true, true),
+    normal: tex(heightToNormal(height, size, 2.5), false, true),
+    roughness: tex(rough, false, true),
+  };
 }
 
 // ------------------------------------------------------------------ pieces
@@ -430,36 +502,28 @@ export const TEAM_COLORS: Record<Team, { plastic: string; card: string; ink: str
   brun: { plastic: '#c28a4a', card: '#a8824e', ink: '#3b2a16' },
 };
 
-/** The printed face of a hidden enemy piece: army emblem and a big question mark. */
-export function cardFace(team: Team) {
-  const { c, g } = canvas(256, 320);
-  const col = TEAM_COLORS[team];
-  g.fillStyle = col.card;
-  g.fillRect(0, 0, 256, 320);
-  const n = fbm(128, 160, team === 'groen' ? 1 : 2, 12, 3);
-  g.globalAlpha = 0.25;
-  g.drawImage(
-    noiseCanvas(128, 160, n, (v) => [v * 255, v * 255, v * 255, 255]),
-    0,
-    0,
-    256,
-    320,
-  );
-  g.globalAlpha = 1;
-  g.strokeStyle = col.ink;
-  g.lineWidth = 10;
-  roundRect(g, 16, 16, 224, 288, 24);
-  g.stroke();
-  g.fillStyle = col.ink;
-  star(g, 128, 118, 70, 28);
-  g.fillStyle = col.card;
-  g.font = 'bold 84px "Black Ops One", Impact, sans-serif';
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.fillText('?', 128, 124);
-  g.fillStyle = col.ink;
-  g.fillRect(56, 232, 144, 14);
-  g.fillRect(76, 258, 104, 10);
+/**
+ * The army emblem moulded into a hidden piece: a star in a ring, drawn as a light top edge
+ * and a dark bottom edge so it reads as embossed plastic.
+ */
+export function emblem(team: Team) {
+  const { c, g } = canvas(256);
+  const dark = team === 'groen' ? 'rgba(10, 30, 0, 0.55)' : 'rgba(70, 40, 10, 0.55)';
+  const light = team === 'groen' ? 'rgba(200, 235, 160, 0.55)' : 'rgba(255, 235, 200, 0.6)';
+  const draw = (dx: number, dy: number, color: string) => {
+    g.save();
+    g.translate(dx, dy);
+    g.strokeStyle = color;
+    g.fillStyle = color;
+    g.lineWidth = 14;
+    g.beginPath();
+    g.arc(128, 128, 100, 0, Math.PI * 2);
+    g.stroke();
+    star(g, 128, 132, 66, 27);
+    g.restore();
+  };
+  draw(3, 4, dark);
+  draw(-2, -3, light);
   return tex(c);
 }
 

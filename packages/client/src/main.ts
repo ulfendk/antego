@@ -7,6 +7,7 @@ import { App } from './app.js';
 import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
 import { buildTable } from './scene/board.js';
+import { buildProps } from './scene/props.js';
 import { PieceKit } from './scene/pieces.js';
 import { Presenter } from './scene/presenter.js';
 import { SETTINGS, detectQuality, saveQuality, savedQuality } from './scene/quality.js';
@@ -36,7 +37,8 @@ async function boot() {
   await document.fonts.load('64px "Black Ops One"').catch(() => undefined);
   const quality = detectQuality();
   const stage = new Stage(canvas, quality);
-  stage.scene.add(buildTable(SETTINGS[quality].printSize));
+  const { table, print } = buildTable(SETTINGS[quality].printSize);
+  stage.scene.add(table);
   const kit = await PieceKit.load(
     SETTINGS[quality].lod0Distance,
     (k) => (bar.style.width = `${Math.round(k * 100)}%`),
@@ -49,6 +51,7 @@ async function boot() {
     unfocus: () => stage.unfocus(),
   });
   stage.scene.add(presenter.group);
+  stage.scene.add(buildProps(kit, print));
   stage.onFrame = (dt) => presenter.update(dt);
   // Automatic tier only: if this device struggles, step down once.
   stage.onSlow = () => {

@@ -34,8 +34,9 @@ export abstract class Minigame implements SceneOverride {
   onFinish: (() => void) | null = null;
 
   constructor(protected ctx: MinigameContext) {
-    this.scene.background = new THREE.Color('#2a2016');
-    this.scene.fog = new THREE.Fog('#2a2016', 16, 42);
+    // A warm, out-of-focus room behind the table instead of a black void.
+    this.scene.background = backdrop();
+    this.scene.fog = new THREE.Fog('#5a4430', 18, 46);
     this.scene.environmentIntensity = 0.4;
     const key = new THREE.DirectionalLight('#fff0d8', 3);
     key.position.set(6, 12, 8);
@@ -60,8 +61,9 @@ export abstract class Minigame implements SceneOverride {
       new THREE.MeshPhysicalMaterial({
         map: wood.map,
         normalMap: wood.normal,
-        normalScale: new THREE.Vector2(0.35, 0.35),
-        roughness: 0.55,
+        normalScale: new THREE.Vector2(0.5, 0.5),
+        roughness: 1,
+        roughnessMap: wood.roughness,
         clearcoat: 0.35,
         clearcoatRoughness: 0.3,
       }),
@@ -114,8 +116,7 @@ let wood: ReturnType<typeof woodMaps> | null = null;
 function sharedWood() {
   if (!wood) {
     wood = woodMaps(512);
-    wood.map.repeat.set(10, 10);
-    wood.normal.repeat.set(10, 10);
+    for (const t of [wood.map, wood.normal, wood.roughness]) t.repeat.set(14, 7);
   }
   return wood;
 }
@@ -129,4 +130,20 @@ export function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingCon
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
   return t;
+}
+
+let room: THREE.Texture | null = null;
+function backdrop() {
+  if (!room) {
+    room = canvasTexture(64, 256, (g) => {
+      const grad = g.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, '#2c2118');
+      grad.addColorStop(0.45, '#6b5238');
+      grad.addColorStop(0.62, '#5a4430');
+      grad.addColorStop(1, '#3a2a1c');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 64, 256);
+    });
+  }
+  return room;
 }

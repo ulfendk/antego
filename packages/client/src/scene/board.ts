@@ -21,7 +21,7 @@ export function worldToSquare(v: THREE.Vector3): Pos | null {
  * A folding cardboard game board: two laminated halves with a cloth hinge, printed top,
  * grey chipboard edges with the paper wrapped over, lying on a wooden table.
  */
-export function buildTable(printSize: number): THREE.Group {
+export function buildTable(printSize: number): { table: THREE.Group; print: THREE.Texture } {
   const group = new THREE.Group();
   const paper = paperMaps();
   const print = boardPrint(printSize);
@@ -72,21 +72,22 @@ export function buildTable(printSize: number): THREE.Group {
   group.add(hinge);
 
   const wood = woodMaps();
-  wood.map.repeat.set(5, 5);
-  wood.normal.repeat.set(5, 5);
+  // Planks ~2.5 board squares wide.
+  for (const t of [wood.map, wood.normal, wood.roughness]) t.repeat.set(6, 3);
   const table = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 60),
     new THREE.MeshPhysicalMaterial({
       map: wood.map,
       normalMap: wood.normal,
-      normalScale: new THREE.Vector2(0.35, 0.35),
-      roughness: 0.55,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.3,
+      normalScale: new THREE.Vector2(0.5, 0.5),
+      roughness: 1,
+      roughnessMap: wood.roughness,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.35,
     }),
   );
   table.rotation.x = -Math.PI / 2;
   table.receiveShadow = true;
   group.add(table);
-  return group;
+  return { table: group, print };
 }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GameEvent, GameView, PieceView, Pos, Rank, Team } from '@antego/shared';
 import { BOARD_TOP, squareToWorld } from './board.js';
 import { PieceKit, PieceObject } from './pieces.js';
+import { toyBoxSlot } from './props.js';
 import { targetRing } from './textures.js';
 import { ease, tween, wait } from './tween.js';
 
@@ -22,13 +23,8 @@ export interface PresenterHooks {
   unfocus?: () => Promise<void>;
 }
 
-/** Where fallen soldiers end up: lying in the toy box area beside the board, per army. */
-function graveSlot(team: Team, index: number) {
-  const col = index % 4;
-  const row = Math.floor(index / 4);
-  const side = team === 'groen' ? 1 : -1;
-  return new THREE.Vector3(side * (6.4 + col * 0.58), 0.12, side * (4.2 - row * 0.62));
-}
+/** Where fallen soldiers end up: lying in their army's toy box beside the board. */
+const graveSlot = toyBoxSlot;
 
 /**
  * Keeps the 3D pieces in step with the game: animates each event (hops, battles,
@@ -330,7 +326,7 @@ export class Presenter {
       650,
       (k) => {
         obj.position.lerpVectors(start, dest, k);
-        obj.position.y += Math.sin(k * Math.PI) * 1.2;
+        obj.position.y += Math.sin(k * Math.PI) * 2;
       },
       ease.inOut,
     );

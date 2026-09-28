@@ -106,7 +106,25 @@ export class Korkskud extends Minigame {
     back.position.set(0, 2.5, -1.4);
     back.receiveShadow = true;
     this.scene.add(back);
-    const fenceMat = this.own(new THREE.MeshStandardMaterial({ color: '#5d7a38', roughness: 0.7 }));
+    // Painted wooden slats with dark gaps and a little wear.
+    const slats = this.own(
+      canvasTexture(1024, 128, (g) => {
+        for (let i = 0; i < 24; i++) {
+          const x = (i * 1024) / 24;
+          const tint = 0.9 + ((i * 37) % 10) / 50;
+          g.fillStyle = `rgb(${93 * tint}, ${122 * tint}, ${56 * tint})`;
+          g.fillRect(x, 0, 1024 / 24, 128);
+          g.fillStyle = 'rgba(20, 30, 10, 0.8)';
+          g.fillRect(x, 0, 3, 128);
+          g.fillStyle = 'rgba(255, 250, 220, 0.12)';
+          for (let k = 0; k < 6; k++)
+            g.fillRect(x + 6 + ((i * 13 + k * 7) % 30), (k * 23 + i * 11) % 120, 2, 8);
+        }
+        g.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        g.fillRect(0, 118, 1024, 10);
+      }),
+    );
+    const fenceMat = this.own(new THREE.MeshStandardMaterial({ map: slats, roughness: 0.75 }));
     for (const [y, z] of [
       [0.55, 0.2],
       [1.65, -0.7],
