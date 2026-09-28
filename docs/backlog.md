@@ -8,6 +8,13 @@ Ideas and follow-ups that aren't scheduled yet. Newest at the bottom of each sec
 - **Threatening act before the reveal:** a quick lunge or raised weapon when two soldiers meet, just before the hidden tile flips.
 - **Mini-game demos:** a short animated demo on each mini-game's intro card.
 
+## Easter eggs and table life
+
+Little non-gameplay surprises around the board:
+
+- a toy jeep occasionally darting across the table behind enemy lines, outside the board;
+- similar touches, for example a paper plane gliding past, a toy tank peeking out from behind the game box, or a soldier in the toy box waving.
+
 ## 3–4 players
 
 - Local play on the plus-shaped "kryds" board (24 pieces per army): board print, toy boxes in the cut-away corners, turn bar, knock-out animation, hot-seat hand-over for N armies.
