@@ -54,16 +54,16 @@ def main() -> None:
     args = ap.parse_args()
 
     content: Path = args.content
-    voices = yaml.safe_load((content / "voices.yaml").read_text())
+    voices = yaml.safe_load((content / "voices.yaml").read_text(encoding="utf-8"))
     lexicon = voices.get("lexicon") or {}
     out_dir = args.out
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "manifest.json"
-    old = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    old = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
 
     lines = []
     for f in sorted((content / "lines").glob("*.yaml")):
-        doc = yaml.safe_load(f.read_text())
+        doc = yaml.safe_load(f.read_text(encoding="utf-8"))
         for line in walk(doc["lines"]):
             text = " ".join(str(line["text"]).split())
             spoken = apply_lexicon(" ".join(line.get("say", line["text"]).split()), lexicon)
@@ -121,7 +121,7 @@ def apply_lexicon(text: str, lexicon: dict) -> str:
 
 def write_manifest(path: Path, manifest: dict) -> None:
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     tmp.replace(path)
 
 
@@ -179,6 +179,13 @@ def split_sentences(text: str) -> list[str]:
     return merged
 
 
+def drop_alignment_hooks(model) -> None:
+    # Chatterbox's AlignmentStreamAnalyzer registers a forward hook on every generate()
+    # and never removes it, so hooks (and the attention they hold) pile up line after line.
+    for layer in model.t3.tfmr.layers:
+        layer.self_attn._forward_hooks.clear()
+
+
 def render_line(model, model_dir, content, voice, text, target: Path, seed: int) -> None:
     gen = {k: voice[k] for k in GEN_KEYS if k in voice}
     prompt = prompt_path(model_dir, content, voice["prompt"])
@@ -194,6 +201,8 @@ def render_line(model, model_dir, content, voice, text, target: Path, seed: int)
             except (IndexError, RuntimeError) as err:
                 print(f"[voice]   model error ({err}); retrying", flush=True)
                 continue
+            finally:
+                drop_alignment_hooks(model)
             secs = wav.shape[-1] / model.sr
             per_char = secs / max(len(sentence), 1)
             if 0.035 < per_char < 0.14:
