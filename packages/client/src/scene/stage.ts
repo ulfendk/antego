@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   BloomEffect,
@@ -18,6 +17,7 @@ import {
 import { N8AOPostPass } from 'n8ao';
 import type { Team } from '@antego/shared';
 import { BOARD_TOP, worldToSquare } from './board.js';
+import { CameraRig } from './rig.js';
 import { SETTINGS, type Quality } from './quality.js';
 import { stepTweens, tween, ease } from './tween.js';
 
@@ -38,7 +38,7 @@ export class Stage {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(36, 1, 0.1, 120);
-  readonly controls: OrbitControls;
+  readonly controls: CameraRig;
   private composer: EffectComposer | null = null;
   private key!: THREE.DirectionalLight;
   private last = performance.now();
@@ -71,13 +71,7 @@ export class Stage {
     this.scene.fog = new THREE.Fog('#1f1810', 24, 48);
 
     this.lights();
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enableDamping = true;
-    this.controls.enablePan = false;
-    this.controls.minDistance = 6;
-    this.controls.maxDistance = 26;
-    this.controls.minPolarAngle = 0.12;
-    this.controls.maxPolarAngle = 1.2;
+    this.controls = new CameraRig(this.camera, canvas);
     this.controls.target.set(0, 0, 0.3);
     this.applyQuality();
     this.resize();
@@ -258,8 +252,6 @@ export class Stage {
     if (dTheta < -Math.PI) dTheta += Math.PI * 2;
     this.flying = true;
     this.controls.enabled = false;
-    this.controls.minAzimuthAngle = -Infinity;
-    this.controls.maxAzimuthAngle = Infinity;
     return tween(
       ms,
       (k) => {
@@ -276,21 +268,12 @@ export class Stage {
     ).then(() => {
       this.flying = false;
       this.controls.enabled = !this.override;
-      const az = VIEW[this.side].azimuth;
-      this.controls.minAzimuthAngle = az - 1.1;
-      this.controls.maxAzimuthAngle = az + 1.1;
-      this.controls.update();
     });
   }
 
   /** Behind the menus: a slow cinematic drift around the table. */
   idleOrbit(on: boolean) {
     this.controls.autoRotate = on;
-    this.controls.autoRotateSpeed = 0.25;
-    if (on) {
-      this.controls.minAzimuthAngle = -Infinity;
-      this.controls.maxAzimuthAngle = Infinity;
-    }
   }
 
   /** Swing the camera round to an army's side of the table. */
@@ -303,32 +286,39 @@ export class Stage {
       this.controls.target.copy(f.target);
       this.camera.position.setFromSphericalCoords(f.dist, f.polar, f.az).add(f.target);
       this.camera.lookAt(f.target);
-      this.controls.minAzimuthAngle = f.az - 1.1;
-      this.controls.maxAzimuthAngle = f.az + 1.1;
-      this.controls.update();
       return Promise.resolve();
     }
     return this.flyTo(f.target, new THREE.Spherical(f.dist, f.polar, f.az), 1100);
   }
 
-  /** Lean in on a move: closer, a little lower, centred between the two squares. */
+  private beforeFocus: { target: THREE.Vector3; sphere: THREE.Spherical } | null = null;
+
+  /** Lean in on a move: closer and centred between the two squares, from the player's current angle. */
   focus(point: THREE.Vector3) {
+    const cur = new THREE.Spherical().setFromVector3(
+      this.camera.position.clone().sub(this.controls.target),
+    );
+    if (!this.focused)
+      this.beforeFocus = { target: this.controls.target.clone(), sphere: cur.clone() };
     this.focused = true;
     const f = this.framing(this.side);
     const target = new THREE.Vector3(point.x, 0, point.z);
+    const radius = Math.min(cur.radius, f.dist) * 0.6;
     return this.flyTo(
       target,
-      new THREE.Spherical(f.dist * 0.55, Math.min(f.polar + 0.12, 1.0), f.az),
+      new THREE.Spherical(radius, Math.min(cur.phi + 0.1, 1.0), cur.theta),
       850,
     );
   }
 
-  /** Back to the whole board after a move. */
+  /** Back to where the player had the camera before the move. */
   unfocus() {
     if (!this.focused) return Promise.resolve();
     this.focused = false;
-    const f = this.framing(this.side);
-    return this.flyTo(f.target, new THREE.Spherical(f.dist, f.polar, f.az), 900);
+    const back = this.beforeFocus;
+    this.beforeFocus = null;
+    if (!back) return Promise.resolve();
+    return this.flyTo(back.target, back.sphere, 900);
   }
 
   get currentSide() {
@@ -379,7 +369,7 @@ export class Stage {
       return;
     }
     this.onFrame?.(dt);
-    this.controls.update();
+    this.controls.update(dt);
     this.renderer.toneMapping = this.composer ? THREE.NoToneMapping : THREE.AgXToneMapping;
     if (this.composer) this.composer.render(dt / 1000);
     else this.renderer.render(this.scene, this.camera);

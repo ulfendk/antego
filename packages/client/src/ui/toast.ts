@@ -3,8 +3,11 @@ import { line } from './dom.js';
 
 let host: HTMLElement | null = null;
 
-/** Small, non-blocking message at the top of the screen (read aloud like every other text). */
-export function toast(lines: LineId | LineId[], ms = 3500) {
+/**
+ * Small, non-blocking message at the top of the screen (read aloud like every other text).
+ * `lead` goes in front, e.g. a rank's insignia.
+ */
+export function toast(lines: LineId | LineId[], ms = 3500, lead?: Node) {
   if (!host) {
     host = document.createElement('div');
     host.className = 'toasts';
@@ -12,6 +15,7 @@ export function toast(lines: LineId | LineId[], ms = 3500) {
   }
   const el = document.createElement('div');
   el.className = 'toast';
+  if (lead) el.append(lead, ' ');
   (Array.isArray(lines) ? lines : [lines]).forEach((id, i) => {
     if (i) el.append(' – ');
     el.append(line(id));

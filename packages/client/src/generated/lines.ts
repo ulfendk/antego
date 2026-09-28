@@ -122,6 +122,7 @@ export const LINES = {
   "spil.opgiv": "Giv op",
   "spil.menu": "Menu",
   "spil.fortsaet": "Fortsæt",
+  "spil.centrer": "Vis hele brættet",
   "tal.0": "nul",
   "tal.1": "en",
   "tal.2": "to",

@@ -36,3 +36,6 @@ lines:
   - id: fortsaet
     speaker: fortaeller
     text: Fortsæt
+  - id: centrer
+    speaker: fortaeller
+    text: Vis hele brættet

@@ -29,6 +29,7 @@ import { saveQuality, type Quality } from './scene/quality.js';
 import type { Stage } from './scene/stage.js';
 import { button, h, line, t } from './ui/dom.js';
 import { toast } from './ui/toast.js';
+import { insignia, rankLabel } from './ui/insignia.js';
 import { voice } from './voice/voice.js';
 import { sfx } from './audio/sfx.js';
 
@@ -292,7 +293,8 @@ export class App {
     if (idx < 0) return;
     if (s.pick === null) {
       s.pick = idx;
-      toast([rankLine(s.placement[idx]!.rank), rankInfo(s.placement[idx]!.rank)], 2500);
+      const r = s.placement[idx]!.rank;
+      toast([rankLine(r), rankInfo(r)], 2500, insignia(r));
     } else if (s.pick === idx) {
       s.pick = null;
     } else {
@@ -406,13 +408,27 @@ export class App {
     this.hud.replaceChildren(
       h('div', { class: `turn ${view.turn}` }, line(id)),
       h(
-        'button',
-        {
-          class: 'btn icon-only menu-btn',
-          'aria-label': t('spil.menu'),
-          onclick: () => this.pause(),
-        },
-        '☰',
+        'div',
+        { class: 'hud-buttons' },
+        h(
+          'button',
+          {
+            class: 'btn icon-only',
+            'data-line': 'spil.centrer',
+            'aria-label': t('spil.centrer'),
+            onclick: () => void this.stage.setSide(this.stage.currentSide),
+          },
+          '⌖',
+        ),
+        h(
+          'button',
+          {
+            class: 'btn icon-only menu-btn',
+            'aria-label': t('spil.menu'),
+            onclick: () => this.pause(),
+          },
+          '☰',
+        ),
       ),
     );
   }
@@ -747,9 +763,9 @@ export class App {
       h(
         'div',
         { class: `battle ${info.attackerTeam}` },
-        line(rankLine(info.attackerRank), 'span', 'rank'),
+        rankLabel(info.attackerRank),
         line('kamp.angriber', 'span', 'verb'),
-        line(rankLine(info.defenderRank), 'span', 'rank'),
+        rankLabel(info.defenderRank),
       ),
     );
     await new Promise((r) => setTimeout(r, 1400));
@@ -777,13 +793,7 @@ export class App {
     else if (outcome === 'both') el = line('kamp.begge', 'span', 'verb');
     else {
       const rank = outcome === 'attacker' ? po.info.attackerRank : po.info.defenderRank;
-      el = h(
-        'span',
-        {},
-        line(rankLine(rank), 'span', 'rank'),
-        ' ',
-        line('kamp.vinder', 'span', 'verb'),
-      );
+      el = h('span', {}, rankLabel(rank), ' ', line('kamp.vinder', 'span', 'verb'));
     }
     this.banner.replaceChildren(h('div', { class: 'battle result' }, el));
     setTimeout(() => this.banner.replaceChildren(), 1600);
@@ -804,6 +814,8 @@ export class App {
       const quick = performance.now() - down.t < 600;
       down = null;
       if (moved > 10 || !quick) return; // that was a camera drag
+      // Lifting a finger after a pinch or twist isn't a tap either.
+      if (performance.now() - this.stage.controls.lastMultiTouch < 400) return;
       const sq = this.stage.pick(e.clientX, e.clientY, this.presenter.boardPieces());
       if (sq) this.tap(sq);
     });
@@ -823,7 +835,8 @@ export class App {
     if (piece && piece.team === me) {
       const targets = legalTargets(view.pieces, view.history, piece);
       if (!targets.length) toast('spil.kan_ikke_flytte', 2000);
-      else if (piece.rank) toast([rankLine(piece.rank), rankInfo(piece.rank)], 2500);
+      else if (piece.rank)
+        toast([rankLine(piece.rank), rankInfo(piece.rank)], 2500, insignia(piece.rank));
       this.selected = targets.length ? piece.id : null;
       this.presenter.select(this.selected, targets);
       return;
