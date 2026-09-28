@@ -16,6 +16,10 @@ Ideas and follow-ups that aren't scheduled yet. Newest at the bottom of each sec
 - Team mode online (it works on one device already).
 - Voice lines for the grey-blue and brown armies and for knock-outs.
 
+## Tabletop race
+
+- Online racing: 2–4 players in a room, each on their own phone. Computer racers fill the empty places. It needs synced starts, car positions streamed through the Colyseus server, and the finishing order decided on the server.
+
 ## Robustness and checks
 
 - A failed model download should offer a retry instead of leaving the loading screen stuck.
