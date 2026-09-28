@@ -446,6 +446,52 @@ function readEnabled() {
 
 export const sfx = new Sfx();
 
+/**
+ * A running toy engine for the race: a putt-putting buzz whose pitch and putt rate follow the
+ * speed. Returns null when sound is off or not yet unlocked.
+ */
+export function engineLoop(): { set(speed: number, throttle: number): void; stop(): void } | null {
+  if (!sfx.enabled) return null;
+  const ctx = audioContext();
+  if (!ctx || ctx.state !== 'running') return null;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 50;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 600;
+  const putt = ctx.createGain();
+  putt.gain.value = 0.5;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 12;
+  const depth = ctx.createGain();
+  depth.gain.value = 0.45;
+  lfo.connect(depth).connect(putt.gain);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.07, t + 0.4);
+  osc.connect(f).connect(putt).connect(g).connect(output(ctx));
+  osc.start(t);
+  lfo.start(t);
+  return {
+    set(speed, throttle) {
+      const now = ctx.currentTime;
+      const k = Math.max(0, Math.min(1.2, speed));
+      osc.frequency.setTargetAtTime(48 + k * 70 + throttle * 8, now, 0.08);
+      lfo.frequency.setTargetAtTime(11 + k * 16, now, 0.08);
+      f.frequency.setTargetAtTime(500 + k * 700, now, 0.1);
+      g.gain.setTargetAtTime(0.05 + throttle * 0.04 + k * 0.03, now, 0.1);
+    },
+    stop() {
+      const now = ctx.currentTime;
+      g.gain.setTargetAtTime(0.0001, now, 0.12);
+      osc.stop(now + 0.6);
+      lfo.stop(now + 0.6);
+    },
+  };
+}
+
 /** Debug: render a sound offline and measure it (used to check nothing is silent or clipping). */
 export async function measureSound(sound: Sound) {
   const rate = 44100;

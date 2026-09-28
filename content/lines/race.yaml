@@ -1,0 +1,32 @@
+id: race
+lines:
+  - id: titel
+    speaker: sergent
+    text: Jeepræs!
+  - id: hjaelp
+    speaker: fortaeller
+    text: Sæt tommelfingeren på skærmen og skub den derhen, hvor jeepen skal køre. Følg tapen tre gange rundt om brættet – og pas på søerne!
+  - id: sidste_omgang
+    speaker: sergent
+    text: Sidste omgang!
+  - id: forkert_vej
+    speaker: sergent
+    text: Forkert vej, soldat! Vend om!
+  - id: nummer_1
+    speaker: fortaeller
+    text: Du vandt! Du er den hurtigste på hele bordet.
+  - id: nummer_2
+    speaker: fortaeller
+    text: Du blev nummer to. Flot kørt!
+  - id: nummer_3
+    speaker: fortaeller
+    text: Du blev nummer tre. Godt kæmpet!
+  - id: nummer_4
+    speaker: fortaeller
+    text: Du blev nummer fire. Prøv igen – du kan godt!
+  - id: igen
+    speaker: fortaeller
+    text: Kør igen
+  - id: stop
+    speaker: fortaeller
+    text: Stop løbet

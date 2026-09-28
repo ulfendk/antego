@@ -2,18 +2,15 @@ import * as THREE from 'three';
 import { sfx } from '../audio/sfx.js';
 import { activeBoard } from './board.js';
 import { BoardDrive } from './boardDrive.js';
-import { loadModel, modelMesh } from './pieces.js';
-import { plasticMaterial } from './plastic.js';
+import { Water } from './water.js';
 import type { Presenter } from './presenter.js';
 import { toyBoxCentres } from './props.js';
 import type { Stage } from './stage.js';
 import { ease, tween, wait } from './tween.js';
+import { JEEP_SIZE, TANK_SIZE, VEHICLE_SCALE, VehicleKit, WHEEL_R } from './vehicles.js';
 
-/** Toy vehicles are sculpted to the soldiers' scale (see tools/models/vehicles.py). */
-const VEHICLE_SCALE = 1.1;
 /** Distance from a toy box's flaps to the tank's centre line (half the tank's width, and some). */
 const TANK_CLEARANCE = 0.75;
-const WHEEL_R = 0.2;
 
 /**
  * Little surprises around the table that have nothing to do with the game: a toy jeep racing
@@ -26,8 +23,6 @@ export class EasterEggs {
   private next = 30_000 + Math.random() * 30_000;
   private busy = false;
   private last = -1;
-  private readonly olive = plasticMaterial('#56663a');
-  private readonly rubber = plasticMaterial('#2c2d28');
   /** The toy vehicles, forward along +X; loaded after start-up (null until then). */
   private jeep: THREE.Group | null = null;
   private wheels: THREE.Object3D[] = [];
@@ -50,7 +45,7 @@ export class EasterEggs {
   ) {
     this.plane.visible = false;
     scene.add(this.plane);
-    this.board = new BoardDrive(scene, presenter);
+    this.board = new BoardDrive(new Water(scene), presenter);
     // Not needed for the first half minute: don't compete with the soldiers while loading.
     setTimeout(() => void this.loadVehicles().catch(() => undefined), 5000);
   }
@@ -59,6 +54,11 @@ export class EasterEggs {
   update(dt: number) {
     this.updateDust(dt);
     if (this.busy) return;
+    // Not while the table is a race track.
+    if (this.stage.driving) {
+      this.next = Math.max(this.next, 20_000);
+      return;
+    }
     this.next -= dt;
     if (this.next > 0) return;
     this.next = 40_000 + Math.random() * 50_000;
@@ -101,39 +101,17 @@ export class EasterEggs {
   // ---------------------------------------------------------------- the jeep
 
   private async loadVehicles() {
-    const [manifest, body, wheel, hull, turret] = await Promise.all([
-      fetch('/models/manifest.json').then(
-        (r) => r.json() as Promise<Record<string, { parts?: number[][] }>>,
-      ),
-      loadModel('jeep.glb'),
-      loadModel('jeep-wheel.glb'),
-      loadModel('tank.glb'),
-      loadModel('tank-turret.glb'),
-    ]);
-    // The models look along +Z; the egg code drives along +X.
-    const vehicle = (...parts: THREE.Object3D[]) => {
-      const outer = new THREE.Group();
-      const inner = new THREE.Group();
-      inner.rotation.y = Math.PI / 2;
-      inner.add(...parts);
-      outer.add(inner);
-      outer.scale.setScalar(VEHICLE_SCALE);
-      outer.visible = false;
-      this.scene.add(outer);
-      return outer;
-    };
-    this.wheels = (manifest['jeep-wheel']?.parts ?? []).map(([x, y, z]) => {
-      const hub = new THREE.Group();
-      hub.position.set(x!, y!, z!);
-      hub.add(modelMesh(wheel, this.rubber));
-      return hub;
-    });
-    this.jeep = vehicle(modelMesh(body, this.olive), ...this.wheels);
-    const [tx, ty, tz] = manifest['tank-turret']?.parts?.[0] ?? [0, 0.5, 0.05];
-    this.turret = new THREE.Group();
-    this.turret.position.set(tx!, ty!, tz!);
-    this.turret.add(modelMesh(turret, this.olive));
-    this.tank = vehicle(modelMesh(hull, this.olive), this.turret);
+    const kit = await VehicleKit.load();
+    const jeep = kit.jeep();
+    const tank = kit.tank();
+    for (const o of [jeep.object, tank.object]) {
+      o.visible = false;
+      this.scene.add(o);
+    }
+    this.jeep = jeep.object;
+    this.wheels = jeep.wheels;
+    this.tank = tank.object;
+    this.turret = tank.turret;
   }
 
   /** Where "behind enemy lines" is for the camera's army: a lane beyond the far edge. */
@@ -189,8 +167,7 @@ export class EasterEggs {
       return this.board.drive({
         kind,
         object: this.jeep!,
-        halfWidth: 0.53 * s,
-        halfLength: 0.98 * s,
+        ...JEEP_SIZE,
         axle: 0.55 * s,
         contacts,
         wheels: { hubs: this.wheels, radius: WHEEL_R * s },
@@ -204,8 +181,7 @@ export class EasterEggs {
     return this.board.drive({
       kind,
       object: this.tank!,
-      halfWidth: 0.56 * s,
-      halfLength: 1.15 * s,
+      ...TANK_SIZE,
       axle: 0.66 * s,
       contacts,
       turret: this.turret!,

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { sfx } from '../audio/sfx.js';
-import { BOARD_TOP, activeBoard } from './board.js';
-import { headingAt, inLake, onCardboard, planDrive, type P2 } from './drive.js';
+import { activeBoard } from './board.js';
+import { headingAt, planDrive, type P2 } from './drive.js';
 import type { Presenter } from './presenter.js';
 import { tableObstacles } from './props.js';
 import { every } from './tween.js';
+import { Water, groundAt } from './water.js';
 
 /** How a toy vehicle drives over the board (sizes in world units, after scaling). */
 export interface VehicleSpec {
@@ -25,41 +26,14 @@ export interface VehicleSpec {
 
 const STEP = 0.05; // route spacing from planDrive
 
-interface Drop {
-  mesh: THREE.Mesh;
-  vel: THREE.Vector3;
-}
-interface Fade {
-  mesh: THREE.Mesh;
-  life: number;
-  age: number;
-  grow: number;
-  opacity: number;
-}
-
 /**
  * The toy jeep or tank drives right across the board, round the soldiers and through a lake:
  * spray, ripples and a bow wave in the water, wet tyre prints on the cardboard after it.
  * Moves wait while it is on the board (and it hurries if one is waiting).
  */
 export class BoardDrive {
-  private drops: Drop[] = [];
-  private fades: Fade[] = [];
-  private readonly dropGeo = new THREE.SphereGeometry(1, 8, 6);
-  private readonly dropMat = new THREE.MeshStandardMaterial({
-    color: '#ffffff',
-    roughness: 0.08,
-    transparent: true,
-    opacity: 0.92,
-    emissive: '#8fb4d0',
-    emissiveIntensity: 0.55,
-  });
-  private readonly ringGeo = new THREE.RingGeometry(0.7, 1, 40).rotateX(-Math.PI / 2);
-  private readonly dotGeo = new THREE.CircleGeometry(1, 12).rotateX(-Math.PI / 2);
-  private readonly printGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-
   constructor(
-    private scene: THREE.Scene,
+    private water: Water,
     private presenter: Presenter,
   ) {}
 
@@ -90,19 +64,14 @@ export class BoardDrive {
   }
 
   private async follow(v: VehicleSpec, route: P2[]) {
-    const board = activeBoard();
     const o = v.object;
     o.rotation.order = 'YZX';
     o.visible = true;
     const total = (route.length - 1) * STEP;
-    const ground = (p: P2) => (onCardboard(board, p) ? BOARD_TOP : 0);
-    const wet = v.contacts.map(() => ({ level: 0, inWater: false, nextPrint: 0 }));
+    const wake = this.water.wake(v.kind, v.contacts);
     let s = 0;
-    let splashAt = 0;
-    let bowAt = 0;
     let aim = 0;
     let y = 0;
-    let sprayIn = 0;
     sfx.play(v.kind === 'tank' ? 'rumble' : 'drive');
 
     await every((dtMs) => {
@@ -124,8 +93,8 @@ export class BoardDrive {
       });
 
       // Ride up onto the cardboard: height from both axles, pitch from the difference.
-      const yf = ground(at(v.axle, 0));
-      const yr = ground(at(-v.axle, 0));
+      const yf = groundAt(at(v.axle, 0));
+      const yr = groundAt(at(-v.axle, 0));
       y += ((yf + yr) / 2 - y) * Math.min(1, dt * 18);
       o.position.set(c.x, y, c.z);
       o.rotation.y = Math.atan2(-h.z, h.x);
@@ -139,40 +108,7 @@ export class BoardDrive {
         v.turret.rotation.y = aim;
       }
 
-      // Water: spray from every wheel in a lake, a bow wave, splash sounds; wet prints after.
-      let anyWater = false;
-      v.contacts.forEach((k, n) => {
-        const p = at(k.x, k.z);
-        const w = wet[n]!;
-        const water = inLake(board, p);
-        if (water) {
-          anyWater = true;
-          if (!w.inWater && s > splashAt) {
-            sfx.play('splash');
-            splashAt = s + 0.9;
-          }
-          w.level = 1;
-        } else if (w.level > 0) {
-          w.level = Math.max(0, w.level - ds / 3.5);
-          if (s >= w.nextPrint && onCardboard(board, p)) {
-            this.print(p, h, v.kind, w.level);
-            w.nextPrint = s + 0.13;
-          }
-        }
-        w.inWater = water;
-        if (water && sprayIn <= 0) {
-          this.spray(p, h, side, Math.sign(k.z) || 1, speed);
-          this.foam(p);
-        }
-      });
-      sprayIn = sprayIn <= 0 ? 0.05 : sprayIn - dt;
-      if (anyWater && s >= bowAt) {
-        const front = at(v.halfLength * 0.9, 0);
-        if (inLake(board, front)) this.ripple(front, 0.35, 1.1, 1.3);
-        const back = at(-v.halfLength * 0.8, 0);
-        if (inLake(board, back)) this.ripple(back, 0.25, 0.8, 1.1);
-        bowAt = s + 0.22;
-      }
+      wake.step(c, h, v.halfLength, speed, dt);
       return s < total;
     });
   }
@@ -193,155 +129,5 @@ export class BoardDrive {
       }
     }
     return THREE.MathUtils.clamp(yaw, -0.45, 0.45);
-  }
-
-  private spray(p: P2, h: P2, side: P2, outward: number, speed: number) {
-    const lively = Math.min(1.3, 0.5 + speed / 2.5);
-    for (let n = 0; n < 3; n++) {
-      if (this.drops.length > 320) return;
-      const r = 0.028 + Math.random() * 0.038;
-      const mesh = new THREE.Mesh(this.dropGeo, this.dropMat);
-      mesh.scale.setScalar(r);
-      mesh.position.set(p.x, BOARD_TOP + 0.03, p.z);
-      const out = outward * (0.6 + Math.random() * 1.1) * lively;
-      const back = -(0.2 + Math.random() * 0.5) * speed * 0.4;
-      const vel = new THREE.Vector3(
-        side.x * out + h.x * back + (Math.random() - 0.5) * 0.3,
-        (1.6 + Math.random() * 1.4) * lively,
-        side.z * out + h.z * back + (Math.random() - 0.5) * 0.3,
-      );
-      this.drops.push({ mesh, vel });
-      this.scene.add(mesh);
-      this.tick();
-    }
-  }
-
-  /** Churned-up white water where a wheel is. */
-  private foam(p: P2) {
-    if (this.fades.length > 200) return;
-    const opacity = 0.45;
-    const mesh = new THREE.Mesh(
-      this.dotGeo,
-      new THREE.MeshBasicMaterial({
-        color: '#ffffff',
-        transparent: true,
-        opacity,
-        depthWrite: false,
-      }),
-    );
-    mesh.position.set(
-      p.x + (Math.random() - 0.5) * 0.1,
-      BOARD_TOP + 0.005,
-      p.z + (Math.random() - 0.5) * 0.1,
-    );
-    mesh.scale.setScalar(0.08);
-    this.fades.push({ mesh, life: 0.6, age: 0, grow: 0.3, opacity });
-    this.scene.add(mesh);
-    this.tick();
-  }
-
-  private ripple(p: P2, from: number, to: number, life: number, opacity = 0.75) {
-    if (this.fades.length > 200) return;
-    const mesh = new THREE.Mesh(
-      this.ringGeo,
-      new THREE.MeshBasicMaterial({
-        color: '#ffffff',
-        transparent: true,
-        opacity,
-        depthWrite: false,
-      }),
-    );
-    mesh.position.set(p.x, BOARD_TOP + 0.004, p.z);
-    mesh.scale.setScalar(from);
-    this.fades.push({ mesh, life, age: 0, grow: (to - from) / life, opacity });
-    this.scene.add(mesh);
-    this.tick();
-  }
-
-  /** A wet tyre (or track) print on the cardboard, fading as it dries. */
-  private print(p: P2, h: P2, kind: VehicleSpec['kind'], level: number) {
-    if (this.fades.length > 200) return;
-    const opacity = 0.5 * level;
-    const mesh = new THREE.Mesh(
-      this.printGeo,
-      new THREE.MeshBasicMaterial({
-        color: '#1d2a33',
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-      }),
-    );
-    mesh.position.set(p.x, BOARD_TOP + 0.002, p.z);
-    mesh.rotation.y = Math.atan2(-h.z, h.x);
-    if (kind === 'tank') mesh.scale.set(0.09, 1, 0.22);
-    else mesh.scale.set(0.1, 1, 0.14);
-    this.fades.push({ mesh, life: 9, age: 0, grow: 0, opacity });
-    this.scene.add(mesh);
-    this.tick();
-  }
-
-  private ticking = false;
-
-  /** Keep the water moving (also while the tab is in the background) until it has all settled. */
-  private tick() {
-    if (this.ticking) return;
-    this.ticking = true;
-    void every((dt) => {
-      this.update(dt);
-      this.ticking = this.drops.length + this.fades.length > 0;
-      return this.ticking;
-    });
-  }
-
-  /** Droplets fly and land (with a ripple), rings grow, prints dry. */
-  private update(dtMs: number) {
-    const dt = Math.min(dtMs, 100) / 1000;
-    const board = activeBoard();
-    for (let i = this.drops.length - 1; i >= 0; i--) {
-      const d = this.drops[i]!;
-      d.vel.y -= 11 * dt;
-      d.mesh.position.addScaledVector(d.vel, dt);
-      if (d.mesh.position.y > BOARD_TOP) continue;
-      const p = { x: d.mesh.position.x, z: d.mesh.position.z };
-      if (inLake(board, p)) this.ripple(p, 0.03, 0.22, 0.6, 0.45);
-      else if (onCardboard(board, p) && Math.random() < 0.5) this.dot(p);
-      this.scene.remove(d.mesh);
-      this.drops.splice(i, 1);
-    }
-    for (let i = this.fades.length - 1; i >= 0; i--) {
-      const f = this.fades[i]!;
-      f.age += dt;
-      const k = f.age / f.life;
-      if (f.grow) f.mesh.scale.setScalar(f.mesh.scale.x + f.grow * dt);
-      const m = f.mesh.material as THREE.MeshBasicMaterial;
-      m.opacity = f.opacity * (1 - k) * (f.grow ? 1 : Math.min(1, (1 - k) * 3));
-      if (k >= 1) {
-        this.scene.remove(f.mesh);
-        m.dispose();
-        this.fades.splice(i, 1);
-      }
-    }
-  }
-
-  /** A drop of water landing on the cardboard. */
-  private dot(p: P2) {
-    if (this.fades.length > 200) return;
-    const opacity = 0.22;
-    const mesh = new THREE.Mesh(
-      this.dotGeo,
-      new THREE.MeshBasicMaterial({
-        color: '#1d2a33',
-        transparent: true,
-        opacity,
-        depthWrite: false,
-      }),
-    );
-    mesh.scale.setScalar(0.02 + Math.random() * 0.025);
-    mesh.position.set(p.x, BOARD_TOP + 0.002, p.z);
-    this.fades.push({ mesh, life: 6, age: 0, grow: 0, opacity });
-    this.scene.add(mesh);
-    this.tick();
   }
 }

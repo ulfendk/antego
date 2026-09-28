@@ -654,3 +654,164 @@ h2,
 .battle.out {
   border-color: #b0413e;
 }
+
+/* ---------------------------------------------------------------- tabletop race */
+
+.stick-area {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  z-index: 1;
+}
+
+.stick-base {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128px;
+  height: 128px;
+  margin: -64px 0 0 -64px;
+  border-radius: 50%;
+  background: radial-gradient(rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+  border: 3px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.stick-base.on {
+  opacity: 1;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #8dbb5a, #3f6a1c);
+  border: 3px solid #e9e2c4;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.stick-hint {
+  position: absolute;
+  left: 22%;
+  bottom: 18%;
+  font-size: 56px;
+  font-family: system-ui, sans-serif;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+  animation: stick-hint 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes stick-hint {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(46px, -34px);
+  }
+}
+
+.race-hud {
+  position: absolute;
+  inset: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) auto
+    max(12px, env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.race-hud > * {
+  pointer-events: auto;
+}
+
+.race-hud .countdown {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.race-lap,
+.race-place {
+  font-family: 'Black Ops One', Impact, sans-serif;
+  font-size: 30px;
+  color: #fff4d0;
+  background: rgba(31, 38, 18, 0.72);
+  border: 3px solid rgba(233, 226, 196, 0.8);
+  border-radius: 16px;
+  padding: 4px 14px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  pointer-events: none !important;
+}
+
+.race-place {
+  font-size: 40px;
+  font-family: system-ui, sans-serif;
+  margin-left: auto;
+}
+
+.race-place.p4 {
+  font-family: 'Black Ops One', Impact, sans-serif;
+}
+
+.race-stop {
+  min-width: 0;
+}
+
+.race-result .podium {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(320px, 80vw);
+}
+
+.race-result .podium li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 28px;
+  font-family: system-ui, sans-serif;
+  border: 3px solid transparent;
+}
+
+.race-result .podium li.me {
+  border-color: var(--olive-dark);
+  box-shadow: 0 0 0 3px #f6d25e;
+}
+
+.race-result .podium li.groen {
+  background: #6f9a43;
+}
+.race-result .podium li.sand {
+  background: #c9a36a;
+}
+.race-result .podium li.blaa {
+  background: #8fa3b3;
+}
+.race-result .podium li.brun {
+  background: #8d6848;
+}
+
+.race-result h1 {
+  font-size: clamp(24px, 5vw, 32px);
+  text-align: center;
+  max-width: 360px;
+  margin: 0;
+}

@@ -35,6 +35,10 @@ import { toast } from './ui/toast.js';
 import { insignia, rankLabel } from './ui/insignia.js';
 import { voice } from './voice/voice.js';
 import { sfx } from './audio/sfx.js';
+import { RaceLauncher } from './race/launcher.js';
+import { runRace } from './race/race.js';
+import { VehicleKit } from './scene/vehicles.js';
+import { Water } from './scene/water.js';
 
 const rankLine = (r: Rank) => `rang.${r}` as LineId;
 /** Per-army text, e.g. teamLine('spil.tur', 'blaa') → 'spil.tur_blaa'. */
@@ -69,18 +73,57 @@ export class App {
   ) {
     root.append(this.hud, this.banner, this.screen);
     this.bindInput();
+    this.launcher = new RaceLauncher(stage.scene, stage);
+    // The vehicles aren't needed straight away: let the soldiers load first.
+    setTimeout(
+      () =>
+        void VehicleKit.load()
+          .then((k) => this.launcher.attach(k))
+          .catch(() => undefined),
+      4000,
+    );
   }
+
+  private launcher: RaceLauncher;
+  private racing = false;
+  private raceWater: Water | null = null;
 
   // ---------------------------------------------------------------- screens
 
   private show(...children: (Node | null)[]) {
     this.screen.replaceChildren(...children.filter((c): c is Node => !!c));
+    // The race jeep waits in its toy box whenever we're between games.
+    this.launcher.show(!this.controller && !this.racing);
+  }
+
+  /** The tabletop race (tap the jeep in the toy box on the welcome screen). */
+  private async startRace() {
+    if (this.racing) return;
+    this.racing = true;
+    this.launcher.show(false);
+    this.stage.idleOrbit(false);
+    updater.setSafe(false);
+    try {
+      const vehicles = await VehicleKit.load();
+      this.raceWater ??= new Water(this.stage.scene);
+      const ctx = {
+        stage: this.stage,
+        layer: this.screen,
+        kit: this.kit,
+        vehicles,
+        water: this.raceWater,
+      };
+      while ((await runRace(ctx)) === 'again');
+    } finally {
+      this.racing = false;
+      updater.setSafe(true);
+      this.menu();
+    }
   }
 
   menu() {
     this.leaveGame();
     this.world.use('klassisk');
-    this.stage.idleOrbit(true);
     this.show(
       h(
         'div',
@@ -94,6 +137,10 @@ export class App {
         button('menu.indstillinger', () => this.settings(), 'small', '⚙️'),
       ),
     );
+    // Frame the toy box so the race jeep sits in the strip below the card.
+    const card = this.screen.querySelector('.panel.menu')?.getBoundingClientRect();
+    const bottom = card ? 1 - (2 * card.bottom) / innerHeight : -0.74;
+    void this.stage.welcome(Math.max(-0.9, Math.min(0.2, bottom)));
   }
 
   private chooseDifficulty() {
@@ -927,6 +974,10 @@ export class App {
       if (moved > 10 || !quick) return; // that was a camera drag
       // Lifting a finger after a pinch or twist isn't a tap either.
       if (performance.now() - this.stage.controls.lastMultiTouch < 400) return;
+      if (!this.controller && !this.racing && this.launcher.hit(e.clientX, e.clientY)) {
+        void this.startRace();
+        return;
+      }
       const sq = this.stage.pick(e.clientX, e.clientY, this.presenter.boardPieces());
       if (sq) this.tap(sq);
     });
