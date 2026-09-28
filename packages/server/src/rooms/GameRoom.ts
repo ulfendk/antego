@@ -45,7 +45,7 @@ function newRoomCode(): string {
   throw new Error('no free room codes');
 }
 
-const MODES: readonly MinigameMode[] = ['altid', 'taette', 'aldrig'];
+const MODES: readonly MinigameMode[] = ['lige', 'aldrig'];
 
 export class GameRoom extends Room<{ state: LobbyState }> {
   override maxClients = 2;

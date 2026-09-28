@@ -1,4 +1,4 @@
-import { CLOSE_FIGHT_MAX_DIFF, MAX_HANDICAP } from './battle.js';
+import { MAX_HANDICAP } from './battle.js';
 import { BOARDS, legalTargets, pieceAt } from './board.js';
 import { createRng } from './rng.js';
 import {
@@ -107,10 +107,8 @@ function attackScore(rank: Rank, target: PieceView, mode: MinigameMode): number 
     if (target.rank === 'mine') return rank === 'minoer' ? 8 : -VALUE[rank] - 5;
     const diff = RANKS[rank].strength - RANKS[target.rank].strength;
     if (rank === 'spion' && target.rank === 'marskal') return VALUE.marskal;
-    const minigame =
-      mode === 'altid' || (mode === 'taette' && Math.abs(diff) <= CLOSE_FIGHT_MAX_DIFF);
-    // A mini-game gives the weaker side a real chance, so the odds are fuzzier.
-    const pWin = minigame ? 0.5 + diff * 0.12 : diff > 0 ? 1 : diff === 0 ? 0.5 : 0;
+    // Stronger always wins; equals either duel (a coin flip for the bot) or both fall.
+    const pWin = diff > 0 ? 1 : diff < 0 ? 0 : mode === 'aldrig' ? 0.3 : 0.5;
     return pWin * VALUE[target.rank] - (1 - pWin) * VALUE[rank];
   }
   // Unknown enemy: an unmoved piece may be a mine or the flag.

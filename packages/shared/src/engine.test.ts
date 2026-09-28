@@ -140,19 +140,19 @@ describe('movement', () => {
 
 describe('battles', () => {
   it('special cases', () => {
-    expect(resolveBattle('sergent', 'flag', 'altid')).toMatchObject({
+    expect(resolveBattle('sergent', 'flag', 'lige')).toMatchObject({
       kind: 'auto',
       outcome: 'attacker',
     });
-    expect(resolveBattle('marskal', 'mine', 'altid')).toMatchObject({
+    expect(resolveBattle('marskal', 'mine', 'lige')).toMatchObject({
       kind: 'auto',
       outcome: 'defender',
     });
-    expect(resolveBattle('minoer', 'mine', 'altid')).toMatchObject({
+    expect(resolveBattle('minoer', 'mine', 'lige')).toMatchObject({
       kind: 'auto',
       outcome: 'attacker',
     });
-    expect(resolveBattle('spion', 'marskal', 'altid')).toMatchObject({
+    expect(resolveBattle('spion', 'marskal', 'lige')).toMatchObject({
       kind: 'auto',
       outcome: 'attacker',
     });
@@ -169,18 +169,19 @@ describe('battles', () => {
     expect(resolveBattle('major', 'major', 'aldrig')).toMatchObject({ outcome: 'both' });
   });
 
-  it('close fights go to a mini-game with a handicap for the stronger soldier', () => {
-    expect(resolveBattle('major', 'kaptajn', 'taette')).toEqual({
+  it('only equally matched soldiers duel in a mini-game; otherwise the stronger wins', () => {
+    expect(resolveBattle('major', 'major', 'lige')).toEqual({
       kind: 'minigame',
-      handicap: { attacker: 1, defender: 0 },
+      handicap: { attacker: 0, defender: 0 },
     });
-    expect(resolveBattle('spejder', 'marskal', 'taette')).toMatchObject({
+    expect(resolveBattle('major', 'kaptajn', 'lige')).toMatchObject({
+      kind: 'auto',
+      outcome: 'attacker',
+      reason: 'staerkere',
+    });
+    expect(resolveBattle('kaptajn', 'major', 'lige')).toMatchObject({
       kind: 'auto',
       outcome: 'defender',
-    });
-    expect(resolveBattle('spejder', 'marskal', 'altid')).toEqual({
-      kind: 'minigame',
-      handicap: { attacker: 0, defender: 3 },
     });
   });
 
@@ -212,17 +213,17 @@ describe('battles', () => {
   it('runs a mini-game battle end to end', () => {
     const s = sandbox(
       [
-        piece('a', 'groen', 'kaptajn', 5, 6),
+        piece('a', 'groen', 'major', 5, 6),
         piece('b', 'sand', 'major', 5, 5),
         piece('gf', 'groen', 'flag', 9, 9),
         piece('bf', 'sand', 'flag', 0, 0),
         piece('bs', 'sand', 'sergent', 1, 0),
       ],
-      { options: { minigames: 'altid' } },
+      { options: { minigames: 'lige' } },
     );
     const r1 = applyAction(s, { type: 'move', team: 'groen', pieceId: 'a', to: { x: 5, y: 5 } });
     expect(r1.state.phase).toBe('battle');
-    expect(r1.state.pendingBattle).toMatchObject({ handicap: { attacker: 0, defender: 1 } });
+    expect(r1.state.pendingBattle).toMatchObject({ handicap: { attacker: 0, defender: 0 } });
     const r2 = applyAction(r1.state, {
       type: 'minigameResult',
       scores: { attacker: 80, defender: 20 },
@@ -258,7 +259,7 @@ describe('hidden information', () => {
 describe('ai', () => {
   it('always picks a legal move and can play whole games against itself', () => {
     for (let game = 0; game < 5; game++) {
-      let s = createGame(game, { minigames: 'taette' });
+      let s = createGame(game, { minigames: 'lige' });
       s = applyAction(s, {
         type: 'setup',
         team: 'groen',

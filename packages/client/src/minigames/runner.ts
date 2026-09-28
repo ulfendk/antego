@@ -55,7 +55,7 @@ export async function runMinigame(
   const mg = spec.make(ctx);
   stage.setOverride(mg);
   try {
-    // Intro: what to do, who is playing, and whether they have a head start.
+    // Intro: what to do and who is playing.
     await new Promise<void>((resolve) =>
       layer.replaceChildren(
         h(
@@ -69,7 +69,6 @@ export async function runMinigame(
             `team-chip ${ctx.team}`,
           ),
           line(spec.howto, 'p'),
-          ctx.handicap > 0 ? line('minispil.fordel', 'p', 'bonus') : null,
           button('menu.start', () => resolve(), 'big go', '▶'),
         ),
       ),

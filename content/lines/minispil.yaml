@@ -24,9 +24,12 @@ lines:
   - id: spiller_sand
     speaker: sand
     text: Den sandfarvede hær kæmper nu.
-  - id: fordel
-    speaker: fortaeller
-    text: Din soldat er den stærkeste, så du får en lille fordel.
+  - id: spiller_blaa
+    speaker: blaa
+    text: Den gråblå hær kæmper nu.
+  - id: spiller_brun
+    speaker: brun
+    text: Den brune hær kæmper nu.
   - id: klar
     speaker: sergent
     text: Klar …

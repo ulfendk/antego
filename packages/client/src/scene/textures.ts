@@ -1,7 +1,15 @@
 import * as THREE from 'three';
-import { createRng, type Rank, type Team } from '@antego/shared';
+import {
+  BOARDS,
+  createRng,
+  homeSquares,
+  type BoardSpec,
+  type Pos,
+  type Rank,
+  type Team,
+} from '@antego/shared';
 
-/** Board is 10×10 squares plus a 0.5 printed margin on every side. */
+/** Classic board: 10×10 squares plus a 0.5 printed margin on every side. */
 export const BOARD_UNITS = 11;
 
 // ------------------------------------------------------------------ noise
@@ -89,17 +97,28 @@ const mix = (a: number[], b: number[], t: number) => a.map((v, i) => v + (b[i]! 
 
 // ------------------------------------------------------------------ printed board
 
-/**
- * The printed top of the folding cardboard board: a meadow map with contour lines,
- * an inked grid, two lakes printed with halftone, team bands, a camo frame, and
- * the wear a well-loved board gets (rubbed corners, a cracked fold line).
- */
-export function boardPrint(size: number): THREE.CanvasTexture {
-  const { c, g } = canvas(size);
-  const u = size / BOARD_UNITS; // pixels per board unit
-  const lo = 512;
+/** Print size in board units: the squares plus a 0.5 margin on every side. */
+export const boardUnits = (spec: BoardSpec) => spec.size + 1;
 
-  // Camo frame in the margin.
+/**
+ * The printed top of the cardboard board: a meadow map with contour lines, an inked grid,
+ * lakes printed with halftone, each army's colour on its home zone and a band along its
+ * back edge, a camo frame, and the wear a well-loved board gets (rubbed edges; the classic
+ * folding board also has a cracked fold line). Works for any board shape.
+ */
+export function boardPrint(size: number, spec: BoardSpec = BOARDS.klassisk): THREE.CanvasTexture {
+  const { c, g } = canvas(size);
+  const U = boardUnits(spec);
+  const u = size / U; // pixels per board unit
+  const lo = 512;
+  const fx = u * 0.5;
+  const sq = (x: number, y: number) => [fx + x * u, fx + y * u] as const;
+  const squares: Pos[] = [];
+  for (let y = 0; y < spec.size; y++)
+    for (let x = 0; x < spec.size; x++) if (spec.playable({ x, y })) squares.push({ x, y });
+  const isPlayable = (x: number, y: number) => spec.playable({ x, y });
+
+  // Camo frame everywhere (the margin shows it).
   const camo = fbm(lo, lo, 11, 3, 5);
   const palette = [
     [72, 82, 44],
@@ -119,75 +138,125 @@ export function boardPrint(size: number): THREE.CanvasTexture {
     size,
   );
 
-  // Meadow for the playing field, with faint printed contour lines.
+  // Meadow for the playing field (clipped to the playable squares), with faint contour lines.
   const meadow = fbm(lo, lo, 23, 4, 5);
   const field = noiseCanvas(lo, lo, meadow, (v) => {
-    // A pale khaki field map, so both the green and the tan plastic stand out on it.
+    // A pale khaki field map, so every army's plastic stands out on it.
     const base = mix([178, 174, 128], [204, 196, 150], v);
     const contour = Math.abs(((v * 14) % 1) - 0.5) < 0.05 ? 0.86 : 1;
     return [base[0]! * contour, base[1]! * contour, base[2]! * contour, 255];
   });
-  const fx = u * 0.5;
-  g.drawImage(field, fx, fx, u * 10, u * 10);
+  g.save();
+  g.beginPath();
+  for (const p of squares) {
+    const [px, py] = sq(p.x, p.y);
+    g.rect(px - 0.5, py - 0.5, u + 1, u + 1);
+  }
+  g.clip();
+  g.drawImage(field, fx, fx, u * spec.size, u * spec.size);
+  g.restore();
 
-  // Home rows: a hint of each army's colour.
-  g.fillStyle = 'rgba(80, 130, 50, 0.2)';
-  g.fillRect(fx, fx + u * 6, u * 10, u * 4);
-  g.fillStyle = 'rgba(180, 120, 60, 0.2)';
-  g.fillRect(fx, fx, u * 10, u * 4);
-
-  // Squares: a soft inner bevel, like a printed tile.
-  for (let y = 0; y < 10; y++) {
-    for (let x = 0; x < 10; x++) {
-      const px = fx + x * u;
-      const py = fx + y * u;
-      g.strokeStyle = 'rgba(255, 250, 220, 0.22)';
-      g.lineWidth = u * 0.03;
-      roundRect(g, px + u * 0.07, py + u * 0.07, u * 0.86, u * 0.86, u * 0.08);
-      g.stroke();
-      if ((x + y) % 2 === 0) {
-        g.fillStyle = 'rgba(255, 255, 230, 0.04)';
-        g.fillRect(px, py, u, u);
-      }
+  // Home zones: a hint of each army's colour.
+  const armies = Object.keys(spec.forward) as Team[];
+  for (const team of armies) {
+    g.fillStyle = hexA(TEAM_COLORS[team].plastic, 0.2);
+    for (const p of homeSquares(team, spec)) {
+      const [px, py] = sq(p.x, p.y);
+      g.fillRect(px, py, u, u);
     }
   }
 
-  // Lakes, each 2×2 squares.
-  for (const x0 of [2, 6]) drawLake(g, fx + x0 * u, fx + 4 * u, u);
+  // Squares: a soft inner bevel, like a printed tile.
+  for (const p of squares) {
+    const [px, py] = sq(p.x, p.y);
+    g.strokeStyle = 'rgba(255, 250, 220, 0.22)';
+    g.lineWidth = u * 0.03;
+    roundRect(g, px + u * 0.07, py + u * 0.07, u * 0.86, u * 0.86, u * 0.08);
+    g.stroke();
+    if ((p.x + p.y) % 2 === 0) {
+      g.fillStyle = 'rgba(255, 255, 230, 0.04)';
+      g.fillRect(px, py, u, u);
+    }
+  }
 
-  // Inked grid.
+  // Lakes: each 2×2 block drawn from its top-left square.
+  const lake = (x: number, y: number) => spec.lakes.some((l) => l.x === x && l.y === y);
+  for (const l of spec.lakes) {
+    if (!lake(l.x - 1, l.y) && !lake(l.x, l.y - 1)) {
+      const [px, py] = sq(l.x, l.y);
+      drawLake(g, px, py, u);
+    }
+  }
+
+  // Inked grid, then a double frame along the outline of the playing field.
   g.strokeStyle = '#2d3419';
   g.lineWidth = u * 0.035;
-  for (let i = 0; i <= 10; i++) {
-    line(g, fx + i * u, fx, fx + i * u, fx + 10 * u);
-    line(g, fx, fx + i * u, fx + 10 * u, fx + i * u);
+  for (const p of squares) {
+    const [px, py] = sq(p.x, p.y);
+    g.strokeRect(px, py, u, u);
   }
-  // Double frame around the field.
-  g.lineWidth = u * 0.06;
-  g.strokeRect(fx - u * 0.06, fx - u * 0.06, u * 10.12, u * 10.12);
-  g.strokeStyle = 'rgba(240, 230, 190, 0.8)';
-  g.lineWidth = u * 0.018;
-  g.strokeRect(fx - u * 0.16, fx - u * 0.16, u * 10.32, u * 10.32);
+  const outline: { a: [number, number]; b: [number, number]; n: [number, number] }[] = [];
+  for (const p of squares) {
+    const [px, py] = sq(p.x, p.y);
+    if (!isPlayable(p.x, p.y - 1)) outline.push({ a: [px, py], b: [px + u, py], n: [0, -1] });
+    if (!isPlayable(p.x, p.y + 1))
+      outline.push({ a: [px, py + u], b: [px + u, py + u], n: [0, 1] });
+    if (!isPlayable(p.x - 1, p.y)) outline.push({ a: [px, py], b: [px, py + u], n: [-1, 0] });
+    if (!isPlayable(p.x + 1, p.y))
+      outline.push({ a: [px + u, py], b: [px + u, py + u], n: [1, 0] });
+  }
+  const along = (off: number, width: number, color: string) => {
+    g.strokeStyle = color;
+    g.lineWidth = width;
+    for (const e of outline) {
+      const ox = e.n[0] * off;
+      const oy = e.n[1] * off;
+      // Extend a little along the edge so frame corners close.
+      const dx = e.a[0] === e.b[0] ? 0 : off;
+      const dy = e.a[1] === e.b[1] ? 0 : off;
+      line(g, e.a[0] + ox - dx, e.a[1] + oy - dy, e.b[0] + ox + dx, e.b[1] + oy + dy);
+    }
+  };
+  along(u * 0.06, u * 0.06, '#2d3419');
+  along(u * 0.16, u * 0.018, 'rgba(240, 230, 190, 0.8)');
 
-  // Team bands on the near and far edges.
-  g.fillStyle = '#4f7a2c';
-  g.fillRect(u * 1.2, size - u * 0.33, size - u * 2.4, u * 0.14);
-  g.fillStyle = '#b8955a';
-  g.fillRect(u * 1.2, u * 0.19, size - u * 2.4, u * 0.14);
-
-  // Corner stars.
-  for (const [sx, sy] of [
-    [0.25, 0.25],
-    [BOARD_UNITS - 0.25, 0.25],
-    [0.25, BOARD_UNITS - 0.25],
-    [BOARD_UNITS - 0.25, BOARD_UNITS - 0.25],
-  ]) {
-    g.fillStyle = '#e9e2c4';
-    g.beginPath();
-    g.arc(sx! * u, sy! * u, u * 0.19, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#3f5424';
-    star(g, sx! * u, sy! * u, u * 0.15, u * 0.06);
+  // Each army's band along the back edge of its home, with a star at each end.
+  for (const team of armies) {
+    const fwd = spec.forward[team]!;
+    const back = homeSquares(team, spec).slice(-spec.homeWidth);
+    const xs = back.map((p) => p.x);
+    const ys = back.map((p) => p.y);
+    const [x0, y0] = sq(Math.min(...xs), Math.min(...ys));
+    const [x1, y1] = sq(Math.max(...xs) + 1, Math.max(...ys) + 1);
+    g.fillStyle = TEAM_COLORS[team].plastic;
+    const depth = u * 0.14;
+    const gap = u * 0.2;
+    let band: [number, number, number, number];
+    let ends: [number, number][];
+    if (fwd.y !== 0) {
+      const y = fwd.y < 0 ? y1 + gap : y0 - gap - depth;
+      band = [x0 + u * 0.7, y, x1 - x0 - u * 1.4, depth];
+      ends = [
+        [x0 - u * 0.25, y + depth / 2],
+        [x1 + u * 0.25, y + depth / 2],
+      ];
+    } else {
+      const x = fwd.x > 0 ? x0 - gap - depth : x1 + gap;
+      band = [x, y0 + u * 0.7, depth, y1 - y0 - u * 1.4];
+      ends = [
+        [x + depth / 2, y0 - u * 0.25],
+        [x + depth / 2, y1 + u * 0.25],
+      ];
+    }
+    g.fillRect(...band);
+    for (const [sx, sy] of ends) {
+      g.fillStyle = '#e9e2c4';
+      g.beginPath();
+      g.arc(sx, sy, u * 0.19, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#3f5424';
+      star(g, sx, sy, u * 0.15, u * 0.06);
+    }
   }
 
   // Print grain: tiny halftone-ish speckle over everything.
@@ -204,14 +273,14 @@ export function boardPrint(size: number): THREE.CanvasTexture {
   g.globalCompositeOperation = 'source-over';
   g.globalAlpha = 1;
 
-  // Wear: rubbed edges and corners showing the grey board underneath, and the fold crack.
+  // Wear: rubbed patches along the board's outer edge (half a square outside the field).
   const rng = createRng(77);
-  for (let i = 0; i < 260; i++) {
-    const side = Math.floor(rng() * 4);
-    const t = rng() * size;
-    const d = rng() ** 3 * u * 0.22;
-    const [x, y] =
-      side === 0 ? [t, d] : side === 1 ? [t, size - d] : side === 2 ? [d, t] : [size - d, t];
+  for (let i = 0; i < 260 * (spec.size / 10); i++) {
+    const e = outline[Math.floor(rng() * outline.length)]!;
+    const t = rng();
+    const d = u * 0.5 - rng() ** 3 * u * 0.22;
+    const x = e.a[0] + (e.b[0] - e.a[0]) * t + e.n[0] * d;
+    const y = e.a[1] + (e.b[1] - e.a[1]) * t + e.n[1] * d;
     g.fillStyle = `rgba(215, 205, 180, ${0.08 + rng() * 0.25})`;
     g.beginPath();
     g.ellipse(
@@ -225,40 +294,47 @@ export function boardPrint(size: number): THREE.CanvasTexture {
     );
     g.fill();
   }
-  for (const [x, y] of [
-    [0, 0],
-    [size, 0],
-    [0, size],
-    [size, size],
-  ]) {
-    for (let i = 0; i < 18; i++) {
-      g.fillStyle = `rgba(178, 170, 156, ${0.3 + rng() * 0.5})`;
-      g.beginPath();
-      g.arc(
-        x! + (rng() - 0.5) * u * 0.25,
-        y! + (rng() - 0.5) * u * 0.25,
-        u * (0.02 + rng() * 0.07),
-        0,
-        Math.PI * 2,
-      );
-      g.fill();
+  if (spec.id === 'klassisk') {
+    for (const [x, y] of [
+      [0, 0],
+      [size, 0],
+      [0, size],
+      [size, size],
+    ]) {
+      for (let i = 0; i < 18; i++) {
+        g.fillStyle = `rgba(178, 170, 156, ${0.3 + rng() * 0.5})`;
+        g.beginPath();
+        g.arc(
+          x! + (rng() - 0.5) * u * 0.25,
+          y! + (rng() - 0.5) * u * 0.25,
+          u * (0.02 + rng() * 0.07),
+          0,
+          Math.PI * 2,
+        );
+        g.fill();
+      }
     }
+    // The classic board folds across the middle; the ink has cracked along it.
+    const mid = size / 2;
+    g.fillStyle = 'rgba(30, 30, 20, 0.35)';
+    g.fillRect(0, mid - u * 0.012, size, u * 0.024);
+    g.strokeStyle = 'rgba(235, 228, 205, 0.55)';
+    g.lineWidth = u * 0.01;
+    g.beginPath();
+    for (let x = 0; x < size; x += u * 0.05) {
+      const on = rng() > 0.35;
+      const y = mid + (rng() - 0.5) * u * 0.02;
+      if (on) g.lineTo(x, y);
+      else g.moveTo(x, y);
+    }
+    g.stroke();
   }
-  // The fold runs across the middle; the ink has cracked along it.
-  const mid = size / 2;
-  g.fillStyle = 'rgba(30, 30, 20, 0.35)';
-  g.fillRect(0, mid - u * 0.012, size, u * 0.024);
-  g.strokeStyle = 'rgba(235, 228, 205, 0.55)';
-  g.lineWidth = u * 0.01;
-  g.beginPath();
-  for (let x = 0; x < size; x += u * 0.05) {
-    const on = rng() > 0.35;
-    const y = mid + (rng() - 0.5) * u * 0.02;
-    if (on) g.lineTo(x, y);
-    else g.moveTo(x, y);
-  }
-  g.stroke();
   return tex(c);
+}
+
+function hexA(hex: string, a: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
 function drawLake(g: CanvasRenderingContext2D, x: number, y: number, u: number) {

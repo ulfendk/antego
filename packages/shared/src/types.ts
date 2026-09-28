@@ -89,13 +89,14 @@ export interface PieceView extends Omit<Piece, 'rank'> {
   rank: Rank | null;
 }
 
-export type MinigameMode = 'altid' | 'taette' | 'aldrig';
+/** 'lige': equally matched soldiers duel in a mini-game; 'aldrig': classic, both fall. */
+export type MinigameMode = 'lige' | 'aldrig';
 
 export interface GameOptions {
   minigames: MinigameMode;
 }
 
-export const DEFAULT_OPTIONS: GameOptions = { minigames: 'taette' };
+export const DEFAULT_OPTIONS: GameOptions = { minigames: 'lige' };
 
 export type MinigameId = 'faldskaerm' | 'korkskud' | 'stormloeb';
 export const MINIGAMES: readonly MinigameId[] = ['faldskaerm', 'korkskud', 'stormloeb'];

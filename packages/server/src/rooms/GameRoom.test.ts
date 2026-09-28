@@ -94,25 +94,24 @@ describe('GameRoom', () => {
     const b = new Client(`ws://127.0.0.1:${PORT}`);
     const host = await a.create(ROOM_GAME, {
       protocol: PROTOCOL_VERSION,
-      options: { minigames: 'altid' },
+      options: { minigames: 'lige' },
     });
     const hostBox = track(host);
     const guest = await b.joinById(host.roomId, { protocol: PROTOCOL_VERSION });
     const guestBox = track(guest);
     host.send('setup', { placement: presetPlacement('groen', 'forsvar') });
-    guest.send('setup', { placement: presetPlacement('sand', 'angreb') });
+    guest.send('setup', { placement: presetPlacement('sand', 'forsvar') });
     const hv = await until(hostBox, (v) => v.phase === 'play');
-    const scout = hv.pieces.find((p) => p.team === 'groen' && p.rank === 'spejder' && p.y === 6)!;
-    const target = hv.pieces
-      .filter((p) => p.team === 'sand' && p.x === scout.x)
-      .sort((p, q) => q.y - p.y)[0]!;
-    host.send('move', { pieceId: scout.id, to: { x: target.x, y: target.y } });
+    // Forsvar against Forsvar: in column 4 a scout faces a scout, with no lake in between.
+    const scout = hv.pieces.find((p) => p.team === 'groen' && p.x === 4 && p.y === 6)!;
+    expect(scout.rank).toBe('spejder');
+    host.send('move', { pieceId: scout.id, to: { x: 4, y: 3 } });
     const battle = await until(guestBox, (v) => v.phase === 'battle');
     expect(battle.pendingBattle?.seed).toBeTypeOf('number');
     host.send('minigameScore', { score: 100 });
     guest.send('minigameScore', { score: 0 });
     const after = await until(hostBox, (v) => v.phase === 'play' && v.turn === 'sand');
-    // Green won the mini-game, so the brown defender fell.
+    // Green won the mini-game, so the sand defender fell.
     expect(after.fallen.map((p) => p.team)).toEqual(['sand']);
     await host.leave();
     await guest.leave();

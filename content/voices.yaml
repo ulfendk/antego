@@ -33,3 +33,15 @@ speakers:
     cfg_weight: 0.45
     temperature: 0.7
     pitch: -1.5
+  blaa:
+    prompt: builtin:mic
+    exaggeration: 0.65
+    cfg_weight: 0.45
+    temperature: 0.7
+    pitch: -1
+  brun:
+    prompt: builtin:nic
+    exaggeration: 0.65
+    cfg_weight: 0.45
+    temperature: 0.7
+    pitch: -3

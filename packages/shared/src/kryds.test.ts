@@ -76,7 +76,7 @@ describe('the plus-shaped 3–4 player board', () => {
 });
 
 function started(players: 3 | 4, seed = 1): GameState {
-  let s = createGame(seed, { minigames: 'taette' }, { board: 'kryds', players });
+  let s = createGame(seed, { minigames: 'lige' }, { board: 'kryds', players });
   s.teams.forEach((team, i) => {
     s = applyAction(s, {
       type: 'setup',

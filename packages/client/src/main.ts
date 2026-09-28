@@ -6,8 +6,7 @@ import { isRoomCode } from '@antego/shared';
 import { App, tutorialSeen } from './app.js';
 import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
-import { buildTable } from './scene/board.js';
-import { buildProps } from './scene/props.js';
+import { World } from './scene/world.js';
 import { PieceKit } from './scene/pieces.js';
 import { Presenter } from './scene/presenter.js';
 import { SETTINGS, detectQuality, saveQuality, savedQuality } from './scene/quality.js';
@@ -46,8 +45,6 @@ async function boot() {
   await document.fonts.load('64px "Black Ops One"').catch(() => undefined);
   const quality = detectQuality();
   const stage = new Stage(canvas, quality);
-  const { table, print } = buildTable(SETTINGS[quality].printSize);
-  stage.scene.add(table);
   const kit = await PieceKit.load(
     SETTINGS[quality].lod0Distance,
     (k) => (bar.style.width = `${Math.round(k * 100)}%`),
@@ -60,7 +57,8 @@ async function boot() {
     unfocus: () => stage.unfocus(),
   });
   stage.scene.add(presenter.group);
-  stage.scene.add(buildProps(kit, print));
+  const world = new World(stage.scene, kit, SETTINGS[quality].printSize);
+  world.use('klassisk');
   stage.onFrame = (dt) => presenter.update(dt);
   // Automatic tier only: if this device struggles, step down once.
   stage.onSlow = () => {
@@ -70,7 +68,7 @@ async function boot() {
     stage.resetFrameWatch();
     saveQuality(null);
   };
-  app = new App(ui, stage, presenter, kit);
+  app = new App(ui, stage, presenter, kit, world);
   loading.remove();
   // ?debug exposes internals for screenshots and poking around in devtools.
   if (new URLSearchParams(location.search).has('debug')) {

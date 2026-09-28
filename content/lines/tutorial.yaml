@@ -30,7 +30,7 @@ lines:
     text: Nu skal vi kæmpe! Tryk på kaptajnen, og tryk så på fjendens skjold lige foran ham.
   - id: kamp_forklaring
     speaker: sergent
-    text: Når to soldater mødes, vinder den stærkeste. Er de næsten lige stærke, dyster de i et minispil – og den stærkeste får en lille fordel.
+    text: Når to soldater mødes, vinder den stærkeste. Er de lige stærke, dyster de i et minispil om, hvem der vinder!
   - id: miner
     speaker: sergent
     text: Pas på minerne! Den, der går på en mine, falder. Kun minøren kan desarmere den.

@@ -3,9 +3,15 @@ lines:
   - id: groen_vinder
     speaker: groen
     text: Den grønne hær vinder!
-  - id: brun_vinder
+  - id: sand_vinder
     speaker: sand
     text: Den sandfarvede hær vinder!
+  - id: blaa_vinder
+    speaker: blaa
+    text: Den gråblå hær vinder!
+  - id: brun_vinder
+    speaker: brun
+    text: Den brune hær vinder!
   - id: du_vandt
     speaker: sergent
     text: Du vandt! Godt kæmpet, soldat!

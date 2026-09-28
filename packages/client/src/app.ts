@@ -24,6 +24,7 @@ import { runMinigame } from './minigames/runner.js';
 import type { LineId } from './generated/lines.js';
 import { updater } from './pwa/updater.js';
 import type { PieceKit } from './scene/pieces.js';
+import type { World } from './scene/world.js';
 import type { Presenter, BattleInfo } from './scene/presenter.js';
 import { saveQuality, type Quality } from './scene/quality.js';
 import type { Stage } from './scene/stage.js';
@@ -60,6 +61,7 @@ export class App {
     private stage: Stage,
     private presenter: Presenter,
     private kit: PieceKit,
+    private world: World,
   ) {
     root.append(this.hud, this.banner, this.screen);
     this.bindInput();
@@ -125,9 +127,8 @@ export class App {
         h(
           'div',
           { class: 'col' },
-          opt('altid', 'menu.altid', '🎮'),
-          opt('taette', 'menu.taette', '⚖️'),
-          opt('aldrig', 'menu.aldrig', '♟️'),
+          opt('lige', 'menu.minispil_ja', '🎮'),
+          opt('aldrig', 'menu.minispil_nej', '♟️'),
         ),
         button('menu.tilbage', () => this.menu(), 'small', '↩'),
       ),
@@ -466,7 +467,7 @@ export class App {
       c.mode === 'hotseat'
         ? winner === 'groen'
           ? 'slut.groen_vinder'
-          : 'slut.brun_vinder'
+          : 'slut.sand_vinder'
         : iWon
           ? 'slut.du_vandt'
           : c.mode === 'ai'
@@ -858,9 +859,10 @@ const MINIGAMES_KEY = 'antego.minigames';
 function savedMinigames(): MinigameMode {
   try {
     const m = localStorage.getItem(MINIGAMES_KEY);
-    return m === 'altid' || m === 'aldrig' || m === 'taette' ? m : 'taette';
+    // Anything but a saved "aldrig" (including the old "altid"/"taette") means mini-games on.
+    return m === 'aldrig' ? 'aldrig' : 'lige';
   } catch {
-    return 'taette';
+    return 'lige';
   }
 }
 

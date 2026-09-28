@@ -6,8 +6,7 @@ import {
   type Rank,
 } from './types.js';
 
-/** In "tætte kampe" mode, fights with a bigger rank difference than this skip the mini-game. */
-export const CLOSE_FIGHT_MAX_DIFF = 3;
+/** Largest head start a mini-game supports (kept for scoring; equal soldiers get none). */
 export const MAX_HANDICAP = 3;
 
 export type BattleDecision =
@@ -28,18 +27,14 @@ export function resolveBattle(attacker: Rank, defender: Rank, mode: MinigameMode
     return { kind: 'auto', outcome: 'attacker', reason: 'spion' };
   }
 
+  // The stronger soldier always wins. Only equally matched soldiers duel in a mini-game
+  // (or, without mini-games, both fall as in classic Stratego).
   const diff = RANKS[attacker].strength - RANKS[defender].strength;
-  const useMinigame =
-    mode === 'altid' || (mode === 'taette' && Math.abs(diff) <= CLOSE_FIGHT_MAX_DIFF);
-  if (!useMinigame) {
-    if (diff === 0) return { kind: 'auto', outcome: 'both', reason: 'lige' };
+  if (diff !== 0) {
     return { kind: 'auto', outcome: diff > 0 ? 'attacker' : 'defender', reason: 'staerkere' };
   }
-  const level = Math.min(MAX_HANDICAP, Math.abs(diff));
-  return {
-    kind: 'minigame',
-    handicap: { attacker: diff > 0 ? level : 0, defender: diff < 0 ? level : 0 },
-  };
+  if (mode === 'aldrig') return { kind: 'auto', outcome: 'both', reason: 'lige' };
+  return { kind: 'minigame', handicap: { attacker: 0, defender: 0 } };
 }
 
 /**

@@ -1,19 +1,41 @@
 import { describe, expect, it } from 'vitest';
-import { presetPlacement, type Team } from '@antego/shared';
+import { type GameState, type Piece, type Team } from '@antego/shared';
 import { LocalController } from './controller.js';
 
-/** Starts a local game and makes green's front scout attack straight up its column. */
+const piece = (id: string, team: Team, rank: Piece['rank'], x: number, y: number): Piece => ({
+  id,
+  team,
+  rank,
+  x,
+  y,
+  revealed: false,
+  moved: false,
+});
+
+/**
+ * A local game on a small practice position: green's scout attacks sand's scout up a clear
+ * column. Equal ranks, so the battle goes to a mini-game.
+ */
 function battleGame(mode: 'ai' | 'hotseat') {
-  const c = new LocalController(mode, { minigames: 'altid' });
+  const c = new LocalController(mode, { minigames: 'lige' });
   c.subscribe(() => undefined);
-  c.setup('groen', presetPlacement('groen', 'forsvar'));
-  if (mode === 'hotseat') c.setup('sand', presetPlacement('sand', 'angreb'));
-  const g = c.game;
-  const scout = g.pieces.find((p) => p.team === 'groen' && p.rank === 'spejder' && p.y === 6)!;
-  const target = g.pieces
-    .filter((p) => p.team === 'sand' && p.x === scout.x)
-    .sort((a, b) => b.y - a.y)[0]!;
-  c.move('groen', scout.id, { x: target.x, y: target.y });
+  const inner = c as unknown as { state: GameState };
+  inner.state = {
+    ...inner.state,
+    phase: 'play',
+    turn: 'groen',
+    turnNumber: 1,
+    placed: { groen: true, sand: true },
+    pieces: [
+      piece('gs', 'groen', 'spejder', 0, 6),
+      piece('gf', 'groen', 'flag', 9, 9),
+      piece('gm', 'groen', 'sergent', 8, 9),
+      piece('ss', 'sand', 'spejder', 0, 3),
+      piece('sf', 'sand', 'flag', 9, 0),
+      piece('sm', 'sand', 'sergent', 8, 0),
+    ],
+  };
+  c.move('groen', 'gs', { x: 0, y: 3 });
   return c;
 }
 

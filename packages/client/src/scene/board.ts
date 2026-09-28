@@ -1,30 +1,45 @@
 import * as THREE from 'three';
-import type { Pos } from '@antego/shared';
-import { BOARD_UNITS, boardEdge, boardPrint, paperMaps, woodMaps } from './textures.js';
+import { BOARDS, type BoardSpec, type Pos } from '@antego/shared';
+import { BOARD_UNITS, boardEdge, boardPrint, boardUnits, paperMaps, woodMaps } from './textures.js';
 
 export const BOARD_THICKNESS = 0.07;
 /** Height of the printed surface above the table. */
 export const BOARD_TOP = BOARD_THICKNESS;
 
-/** Board square → world position of its centre on the printed surface. y 9 (green's home) is nearest +Z. */
+let active: BoardSpec = BOARDS.klassisk;
+
+/** The board currently on the table; square ↔ world conversions follow it. */
+export function setActiveBoard(spec: BoardSpec) {
+  active = spec;
+}
+
+export function activeBoard(): BoardSpec {
+  return active;
+}
+
+/** Board square → world position of its centre on the printed surface. Green's home is nearest +Z. */
 export function squareToWorld(p: Pos, y = BOARD_TOP): THREE.Vector3 {
-  return new THREE.Vector3(p.x - 4.5, y, p.y - 4.5);
+  const o = (active.size - 1) / 2;
+  return new THREE.Vector3(p.x - o, y, p.y - o);
 }
 
 export function worldToSquare(v: THREE.Vector3): Pos | null {
-  const x = Math.floor(v.x + 5);
-  const y = Math.floor(v.z + 5);
-  return x >= 0 && x < 10 && y >= 0 && y < 10 ? { x, y } : null;
+  const h = active.size / 2;
+  const p = { x: Math.floor(v.x + h), y: Math.floor(v.z + h) };
+  return active.playable(p) ? p : null;
 }
 
 /**
  * A folding cardboard game board: two laminated halves with a cloth hinge, printed top,
  * grey chipboard edges with the paper wrapped over, lying on a wooden table.
  */
-export function buildTable(printSize: number): { table: THREE.Group; print: THREE.Texture } {
+export function buildTable(
+  printSize: number,
+  spec: BoardSpec = BOARDS.klassisk,
+): { table: THREE.Group; print: THREE.Texture } {
   const group = new THREE.Group();
   const paper = paperMaps();
-  const print = boardPrint(printSize);
+  const print = boardPrint(printSize, spec);
   const half = BOARD_UNITS / 2;
   const gap = 0.012;
 
@@ -42,6 +57,12 @@ export function buildTable(printSize: number): { table: THREE.Group; print: THRE
   edgeTex.repeat.set(8, 1);
   const edge = new THREE.MeshStandardMaterial({ map: edgeTex, roughness: 0.85 });
   const under = new THREE.MeshStandardMaterial({ color: '#2f3326', roughness: 0.9 });
+
+  if (spec.id !== 'klassisk') {
+    group.add(shapedBoard(spec, top, edge));
+    group.add(woodTable());
+    return { table: group, print };
+  }
 
   // Two halves, split along the fold (world z = 0). Each gets the matching half of the print.
   for (const side of [-1, 1] as const) {
@@ -71,6 +92,59 @@ export function buildTable(printSize: number): { table: THREE.Group; print: THRE
   hinge.position.y = BOARD_THICKNESS * 0.4;
   group.add(hinge);
 
+  group.add(woodTable());
+  return { table: group, print };
+}
+
+/**
+ * A one-piece plus-shaped board (the 3–4 player board), in the field's outline plus the
+ * margin. Extruded from the outline with a soft bevel; the print is mapped from above.
+ */
+function shapedBoard(spec: BoardSpec, top: THREE.Material, edge: THREE.Material) {
+  const U = boardUnits(spec);
+  // A plus: the arms are the columns/rows that reach the board's edge.
+  const h = spec.size / 2;
+  let lo = 0;
+  while (lo < spec.size && !spec.playable({ x: lo, y: 0 })) lo++;
+  const a = h - lo + 0.5; // half arm width, including the 0.5 margin
+  const b = h + 0.5; // half extent, including the margin
+  const shape = new THREE.Shape();
+  const pts: [number, number][] = [
+    [-a, -b],
+    [a, -b],
+    [a, -a],
+    [b, -a],
+    [b, a],
+    [a, a],
+    [a, b],
+    [-a, b],
+    [-a, a],
+    [-b, a],
+    [-b, -a],
+    [-a, -a],
+  ];
+  pts.forEach(([x, y], i) => (i ? shape.lineTo(x, y) : shape.moveTo(x, y)));
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: BOARD_THICKNESS - 0.012,
+    bevelEnabled: true,
+    bevelThickness: 0.006,
+    bevelSize: 0.012,
+    bevelSegments: 2,
+    curveSegments: 1,
+  });
+  // Shape x/y become world x/-z; map the top face's shape coordinates onto the print.
+  const uv = geo.attributes.uv as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / U + 0.5, uv.getY(i) / U + 0.5);
+  uv.needsUpdate = true;
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, 0.006, 0);
+  const mesh = new THREE.Mesh(geo, [top, edge]);
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+
+function woodTable() {
   const wood = woodMaps();
   // Planks ~2.5 board squares wide.
   for (const t of [wood.map, wood.normal, wood.roughness]) t.repeat.set(6, 3);
@@ -88,6 +162,5 @@ export function buildTable(printSize: number): { table: THREE.Group; print: THRE
   );
   table.rotation.x = -Math.PI / 2;
   table.receiveShadow = true;
-  group.add(table);
-  return { table: group, print };
+  return table;
 }

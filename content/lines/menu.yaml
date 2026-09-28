@@ -27,18 +27,27 @@ lines:
   - id: svaer
     speaker: fortaeller
     text: Svær
+  - id: antal
+    speaker: fortaeller
+    text: Hvor mange hære skal være med?
+  - id: to_haere
+    speaker: fortaeller
+    text: To hære – klassisk
+  - id: tre_haere
+    speaker: fortaeller
+    text: Tre hære
+  - id: fire_haere
+    speaker: fortaeller
+    text: Fire hære
   - id: minispil
     speaker: fortaeller
-    text: Hvornår skal soldaterne dyste i minispil?
-  - id: altid
+    text: Skal lige stærke soldater dyste i et minispil?
+  - id: minispil_ja
     speaker: fortaeller
-    text: Altid
-  - id: taette
+    text: Ja, de dyster
+  - id: minispil_nej
     speaker: fortaeller
-    text: Ved tætte kampe
-  - id: aldrig
-    speaker: fortaeller
-    text: Aldrig
+    text: Nej, begge falder
   - id: start
     speaker: sergent
     text: Start!

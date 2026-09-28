@@ -1,30 +1,81 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import type { Team } from '@antego/shared';
+import type { BoardId, BoardSpec, Team } from '@antego/shared';
+import { activeBoard } from './board.js';
 import { PIECE_SCALE, soldierMesh, type PieceKit } from './pieces.js';
 import { BOARD_UNITS, TEAM_COLORS, fbm } from './textures.js';
 
-/** Inner size of each army's toy box (x across, z along the table), in board units. */
-const BOX = { w: 3.1, d: 4.6, h: 0.9, wall: 0.06 };
-
-/** Toy box centre for an army: beside the board, on that player's side of the table. */
-function boxCentre(team: Team) {
-  const s = team === 'groen' ? 1 : -1;
-  return new THREE.Vector3(s * 8.5, 0, s * 2.4);
+interface BoxLayout {
+  /** Inner size (x across, z along the table), height and wall thickness, in board units. */
+  w: number;
+  d: number;
+  h: number;
+  wall: number;
+  flap: number;
+  cols: number;
+  rows: number;
+  centre(team: Team): THREE.Vector3;
+  lid: [number, number, number];
+  spares: [Team, 'spejder' | 'sergent', number, number, number][];
 }
+
+/**
+ * Where the toy boxes stand. Classic: beside the board on each player's side. The plus board:
+ * one in each cut-away corner, to the right of its army.
+ */
+const LAYOUTS: Record<BoardId, BoxLayout> = {
+  klassisk: {
+    w: 3.1,
+    d: 4.6,
+    h: 0.9,
+    wall: 0.06,
+    flap: 1.1,
+    cols: 4,
+    rows: 7,
+    centre: (team) => {
+      const s = team === 'groen' ? 1 : -1;
+      return new THREE.Vector3(s * 8.5, 0, s * 2.4);
+    },
+    lid: [-9.5, -9, 0.5],
+    spares: [
+      ['groen', 'spejder', 8.6, -6.4, 0.6],
+      ['sand', 'sergent', -7.2, 7.6, 2.4],
+    ],
+  },
+  kryds: {
+    w: 2.4,
+    d: 2.4,
+    h: 0.8,
+    wall: 0.06,
+    flap: 0.4,
+    cols: 3,
+    rows: 3,
+    centre: (team) => {
+      const [x, z] = { groen: [6, 6], blaa: [-6, 6], sand: [-6, -6], brun: [6, -6] }[team];
+      return new THREE.Vector3(x, 0, z);
+    },
+    lid: [-11.5, -10.5, 0.5],
+    spares: [
+      ['groen', 'spejder', 11, -9, 0.6],
+      ['blaa', 'sergent', -9.5, 11, 2.4],
+    ],
+  },
+};
+
+const layout = () => LAYOUTS[activeBoard().id];
 
 /** Where the n-th fallen soldier of an army lies in its toy box (in rows, then layers). */
 export function toyBoxSlot(team: Team, index: number) {
-  const cols = 4;
-  const rows = 7;
-  const layer = Math.floor(index / (cols * rows));
-  const j = index % (cols * rows);
-  const col = j % cols;
-  const row = Math.floor(j / cols);
+  const L = layout();
+  const perLayer = L.cols * L.rows;
+  const layer = Math.floor(index / perLayer);
+  const j = index % perLayer;
+  const col = j % L.cols;
+  const row = Math.floor(j / L.cols);
   const s = team === 'groen' ? 1 : -1;
-  const x = (col - 1.5) * 0.72 * s;
-  const z = (row - 3) * 0.62 * s;
-  return boxCentre(team).add(new THREE.Vector3(x, 0.1 + layer * 0.3, z));
+  const x = (col - (L.cols - 1) / 2) * (L.w / L.cols) * s;
+  const z = (row - (L.rows - 1) / 2) * (L.d / L.rows) * s;
+  return L.centre(team).add(new THREE.Vector3(x, 0.1 + layer * 0.3, z));
 }
 
 function kraft(seed: number, print?: (g: CanvasRenderingContext2D, w: number, h: number) => void) {
@@ -62,11 +113,11 @@ function starPath(g: CanvasRenderingContext2D, cx: number, cy: number, r: number
 }
 
 /** An open cardboard toy box with printed army markings on its sides and flaps folded out. */
-function toyBox(team: Team) {
+function toyBox(team: Team, L: BoxLayout) {
   const group = new THREE.Group();
   const col = TEAM_COLORS[team].plastic;
   const side = new THREE.MeshStandardMaterial({
-    map: kraft(team === 'groen' ? 7 : 8, (g, w, h) => {
+    map: kraft(7 + ['groen', 'sand', 'blaa', 'brun'].indexOf(team), (g, w, h) => {
       g.fillStyle = col;
       g.fillRect(0, h * 0.62, w, h * 0.12);
       g.fillStyle = 'rgba(40, 30, 15, 0.8)';
@@ -80,7 +131,7 @@ function toyBox(team: Team) {
     roughness: 0.95,
     color: '#d9cbb0',
   });
-  const { w, d, h, wall } = BOX;
+  const { w, d, h, wall } = L;
   const parts: [number, number, number, number, number, number, THREE.Material][] = [
     [w + wall * 2, wall, d + wall * 2, 0, wall / 2, 0, inside], // floor
     [wall, h, d + wall * 2, -(w + wall) / 2, h / 2, 0, side],
@@ -108,17 +159,17 @@ function toyBox(team: Team) {
     pivot.add(hinge);
     group.add(pivot);
   };
-  flap(1.2, w, 0, d / 2 + wall, 0);
-  flap(1.2, w, 0, -d / 2 - wall, Math.PI);
-  flap(1.0, d, w / 2 + wall, 0, Math.PI / 2);
-  flap(1.0, d, -w / 2 - wall, 0, -Math.PI / 2);
-  group.position.copy(boxCentre(team));
+  flap(L.flap * 1.1, w, 0, d / 2 + wall, 0);
+  flap(L.flap * 1.1, w, 0, -d / 2 - wall, Math.PI);
+  flap(L.flap, d, w / 2 + wall, 0, Math.PI / 2);
+  flap(L.flap, d, -w / 2 - wall, 0, -Math.PI / 2);
+  group.position.copy(L.centre(team));
   group.rotation.y = team === 'groen' ? 0 : Math.PI;
   return group;
 }
 
 /** The game's own box lid, printed with the board art, lying at the back of the table. */
-function boxLid(boardPrint: THREE.Texture) {
+function boxLid(boardPrint: THREE.Texture, [x, z, ry]: [number, number, number]) {
   const size = BOARD_UNITS * 0.62;
   const edge = new THREE.MeshStandardMaterial({ color: '#3f5424', roughness: 0.7 });
   const top = new THREE.MeshPhysicalMaterial({ map: boardPrint, roughness: 0.35, clearcoat: 0.6 });
@@ -130,22 +181,20 @@ function boxLid(boardPrint: THREE.Texture) {
     edge,
     edge,
   ]);
-  lid.position.set(-9.5, 0.25, -9);
-  lid.rotation.y = 0.5;
+  lid.position.set(x, 0.25, z);
+  lid.rotation.y = ry;
   lid.castShadow = lid.receiveShadow = true;
   return lid;
 }
 
 /** Everything on the table around the board: toy boxes, the game box, a couple of spare soldiers. */
-export function buildProps(kit: PieceKit, boardPrint: THREE.Texture) {
+export function buildProps(kit: PieceKit, boardPrint: THREE.Texture, spec: BoardSpec) {
+  const L = LAYOUTS[spec.id];
   const group = new THREE.Group();
-  group.add(toyBox('groen'), toyBox('sand'), boxLid(boardPrint));
+  for (const team of Object.keys(spec.forward) as Team[]) group.add(toyBox(team, L));
+  group.add(boxLid(boardPrint, L.lid));
   // Spare soldiers that never made it into the game.
-  const spares: [Team, 'spejder' | 'sergent', number, number, number][] = [
-    ['groen', 'spejder', 8.6, -6.4, 0.6],
-    ['sand', 'sergent', -7.2, 7.6, 2.4],
-  ];
-  for (const [team, rank, x, z, ry] of spares) {
+  for (const [team, rank, x, z, ry] of L.spares) {
     const s = soldierMesh(kit, rank, team, 1);
     const holder = new THREE.Group();
     holder.add(s);

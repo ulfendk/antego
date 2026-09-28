@@ -16,7 +16,7 @@ import {
 } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
 import type { Team } from '@antego/shared';
-import { BOARD_TOP, worldToSquare } from './board.js';
+import { BOARD_TOP, activeBoard, worldToSquare } from './board.js';
 import { CameraRig } from './rig.js';
 import { SETTINGS, type Quality } from './quality.js';
 import { stepTweens, tween, ease } from './tween.js';
@@ -197,12 +197,13 @@ export class Stage {
     const az = VIEW[team].azimuth;
     // Portrait phones look down more steeply; landscape gets the classic table view.
     const polar = this.portrait ? 0.36 : 0.78;
-    const toward = team === 'groen' ? 1 : -1;
+    // The camera sits behind the army, i.e. opposite its forward direction.
+    const fwd = activeBoard().forward[team] ?? { x: 0, y: -1 };
     // Try aiming at different points along the player's axis and keep the one that shows the
     // board biggest (closest camera) while everything still fits.
     let best = { target: new THREE.Vector3(), dist: Infinity };
     for (let shift = 0; shift <= 4; shift += 0.25) {
-      const target = new THREE.Vector3(0, 0, toward * shift);
+      const target = new THREE.Vector3(-fwd.x * shift, 0, -fwd.y * shift);
       const dist = this.fitDistance(target, polar, az);
       if (dist < best.dist - 1e-3) best = { target, dist };
     }
@@ -217,13 +218,22 @@ export class Stage {
    */
   private fitDistance(target: THREE.Vector3, polar: number, az: number) {
     const cam = this.camera.clone();
-    const e = this.portrait ? 5.25 : 5.7;
+    // Outline points to keep on screen: the square board's corners, or the plus board's arm ends.
+    const board = activeBoard();
+    const e = (board.size / 2) * (this.portrait ? 1.05 : 1.14);
     // Keep ~72 px at the top free for the turn pill and menu button, whatever the screen height.
     const top = 1 - 2 * Math.min(0.22, 72 / Math.max(1, this.size.h));
     const bottom = this.portrait ? -0.3 : -0.8;
+    const corners: [number, number][] = [];
+    if (board.id === 'klassisk') {
+      for (const x of [-e, e]) for (const z of [-e, e]) corners.push([x, z]);
+    } else {
+      const arm = e * 0.6;
+      for (const s1 of [-1, 1])
+        for (const s2 of [-1, 1]) corners.push([s1 * arm, s2 * e], [s1 * e, s2 * arm]);
+    }
     const pts: THREE.Vector3[] = [];
-    for (const x of [-e, e])
-      for (const z of [-e, e]) for (const y of [0, 1.1]) pts.push(new THREE.Vector3(x, y, z));
+    for (const [x, z] of corners) for (const y of [0, 1.1]) pts.push(new THREE.Vector3(x, y, z));
     const fits = (d: number) => {
       cam.position.setFromSphericalCoords(d, polar, az).add(target);
       cam.lookAt(target);

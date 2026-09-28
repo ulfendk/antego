@@ -1,6 +1,7 @@
 import {
   aiMinigameScore,
   applyAction,
+  BOARDS,
   chooseAiMove,
   createGame,
   randomPlacement,
@@ -41,7 +42,10 @@ export interface Controller {
   dispose(): void;
 }
 
-/** Runs the shared engine on this device: hot-seat for two kids, or against the computer. */
+/**
+ * Runs the shared engine on this device: hot-seat for 2–4 kids, or one child against 1–3
+ * computer armies. Two armies play classic Stratego; three or four use the plus board.
+ */
 export class LocalController implements Controller {
   private state: GameState;
   private listeners: Listener[] = [];
@@ -49,25 +53,33 @@ export class LocalController implements Controller {
   private scores: Partial<Record<Team, number>> = {};
   /** Who is looking at the screen right now (hot-seat hands the device over; null hides every rank). */
   viewer: Team | null;
-  readonly aiTeam: Team | null;
+  /** Armies played by the computer (everyone but green, against the computer). */
+  readonly aiTeams: readonly Team[];
 
   constructor(
     readonly mode: 'ai' | 'hotseat',
     options: Partial<GameOptions>,
     private difficulty: Difficulty = 'mellem',
+    players: 2 | 3 | 4 = 2,
   ) {
-    this.state = createGame(randomSeed(), options);
-    this.aiTeam = mode === 'ai' ? 'sand' : null;
+    const board = players > 2 ? 'kryds' : 'klassisk';
+    this.state = createGame(randomSeed(), options, { board, players });
+    this.aiTeams = mode === 'ai' ? this.state.teams.filter((t) => t !== 'groen') : [];
     this.viewer = 'groen';
-    if (this.aiTeam) {
+    for (const team of this.aiTeams) {
       const seed = randomSeed();
       const pick = seed % (PRESET_IDS.length + 1);
+      const spec = BOARDS[board];
       const placement =
         pick < PRESET_IDS.length
-          ? presetPlacement(this.aiTeam, PRESET_IDS[pick]!)
-          : randomPlacement(this.aiTeam, seed);
-      this.state = applyAction(this.state, { type: 'setup', team: this.aiTeam, placement }).state;
+          ? presetPlacement(team, PRESET_IDS[pick]!, spec)
+          : randomPlacement(team, seed, spec);
+      this.state = applyAction(this.state, { type: 'setup', team, placement }).state;
     }
+  }
+
+  private isAi(team: Team) {
+    return this.aiTeams.includes(team);
   }
 
   get game(): Readonly<GameState> {
@@ -88,7 +100,7 @@ export class LocalController implements Controller {
   }
 
   me(view: GameView): Team {
-    return this.aiTeam ? (this.aiTeam === 'groen' ? 'sand' : 'groen') : view.turn;
+    return this.aiTeams.length ? 'groen' : view.turn;
   }
 
   setup(team: Team, placement: Placement[]) {
@@ -108,7 +120,7 @@ export class LocalController implements Controller {
     if (this.state.phase !== 'battle' || !b) return;
     this.scores[team] = score;
     const attacker = this.state.pieces.find((p) => p.id === b.attackerId)!.team;
-    const defender: Team = attacker === 'groen' ? 'sand' : 'groen';
+    const defender = this.state.pieces.find((p) => p.id === b.defenderId)!.team;
     const a = this.scores[attacker];
     const d = this.scores[defender];
     if (a === undefined || d === undefined) return;
@@ -118,7 +130,7 @@ export class LocalController implements Controller {
 
   localPlayers(attacker: Team, defender: Team): Team[] {
     // Hot-seat: both play on this device, the attacker first. Against the computer: only the human.
-    return [attacker, defender].filter((t) => t !== this.aiTeam);
+    return [attacker, defender].filter((t) => !this.isAi(t));
   }
 
   dispose() {
@@ -136,27 +148,42 @@ export class LocalController implements Controller {
 
   private afterAction() {
     const s = this.state;
-    // A battle goes to a mini-game: the computer "plays" its side right away; humans play in the app.
-    if (s.phase === 'battle' && s.pendingBattle && this.aiTeam) {
+    // A battle goes to a mini-game: computer armies "play" their side right away; humans play in
+    // the app. Two computer armies fighting each other are settled on the spot.
+    if (s.phase === 'battle' && s.pendingBattle && this.aiTeams.length) {
       const b = s.pendingBattle;
-      const aiAttacks = s.pieces.find((p) => p.id === b.attackerId)?.team === this.aiTeam;
-      const h = aiAttacks ? b.handicap.attacker : b.handicap.defender;
-      this.scores = { [this.aiTeam]: aiMinigameScore(this.difficulty, h, b.seed) };
+      const att = s.pieces.find((p) => p.id === b.attackerId)!.team;
+      const def = s.pieces.find((p) => p.id === b.defenderId)!.team;
+      this.scores = {};
+      if (this.isAi(att))
+        this.scores[att] = aiMinigameScore(this.difficulty, b.handicap.attacker, b.seed);
+      if (this.isAi(def))
+        this.scores[def] = aiMinigameScore(this.difficulty, b.handicap.defender, b.seed + 1);
+      if (this.isAi(att) && this.isAi(def)) {
+        const scores = { attacker: this.scores[att]!, defender: this.scores[def]! };
+        this.scores = {};
+        this.act({ type: 'minigameResult', scores });
+      }
       return;
     }
-    if (s.phase === 'play' && s.turn === this.aiTeam) this.scheduleAi();
+    if (s.phase === 'play' && this.isAi(s.turn)) this.scheduleAi();
   }
 
   /** The bot moves after a short pause, so it doesn't feel instant. */
   private scheduleAi() {
     if (this.aiTimer) clearTimeout(this.aiTimer);
-    this.aiTimer = setTimeout(() => {
-      this.aiTimer = null;
-      const s = this.state;
-      if (s.phase !== 'play' || s.turn !== this.aiTeam) return;
-      const move = chooseAiMove(viewFor(s, this.aiTeam), this.difficulty, randomSeed());
-      if (move) this.move(this.aiTeam, move.pieceId, move.to);
-      else this.resign(this.aiTeam);
-    }, 1600);
+    this.aiTimer = setTimeout(
+      () => {
+        this.aiTimer = null;
+        const s = this.state;
+        const team = s.turn;
+        if (s.phase !== 'play' || !this.isAi(team)) return;
+        const move = chooseAiMove(viewFor(s, team), this.difficulty, randomSeed());
+        if (move) this.move(team, move.pieceId, move.to);
+        else this.resign(team);
+        // Once the human is out, the remaining computer armies play on a little quicker.
+      },
+      this.state.out.includes('groen') ? 700 : 1600,
+    );
   }
 }
