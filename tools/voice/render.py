@@ -141,6 +141,11 @@ def load_model():
 
     torch.set_num_threads(os.cpu_count() or 4)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if os.environ.get("VOICE_REQUIRE_GPU") == "1" and device != "cuda":
+        sys.exit(
+            "[voice] --gpu was given, but no CUDA GPU is visible in the container. "
+            "Check the NVIDIA driver and the NVIDIA Container Toolkit (or Docker Desktop's WSL 2 GPU support)."
+        )
     print(f"[voice] loading {MODEL_ID} on {device}", flush=True)
     model_dir = Path(snapshot_download(MODEL_ID, allow_patterns=MODEL_FILES))
     return model_dir, ChatterboxMultilingualTTS.from_local(model_dir, device=device)

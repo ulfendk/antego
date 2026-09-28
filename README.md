@@ -30,6 +30,18 @@ npm run models -- --preview   # rebuild models (needs Docker); previews in tools
 
 Add `?debug` to the URL to expose the app in the devtools console.
 
+## Voice (Røst)
+
+Every text in `content/lines/*.yaml` is read aloud with pre-rendered [Røst-v3](https://huggingface.co/CoRal-project/roest-v3-chatterbox-500m) speech. Voices are set per speaker in `content/voices.yaml`.
+
+- Run `npm run voice` to render new or changed lines into `packages/client/public/voice`, then commit the files. Unchanged lines are skipped.
+- The first run downloads the ~3 GB model into a Docker volume.
+- On a machine with an NVIDIA GPU, add `--gpu` (e.g. `npm run voice -- --gpu`). It is much faster than CPU:
+  - **Windows:** use Docker Desktop with the WSL 2 backend and a current NVIDIA driver. Run the command from a WSL shell inside the repo.
+  - **Linux:** install the NVIDIA driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+  - Check with `docker run --rm --gpus all ubuntu nvidia-smi`. The renderer stops with a clear message if `--gpu` is given but no GPU is visible.
+- `npm run voice -- --only kamp.` renders only lines whose id starts with `kamp.`. Add `--force` to re-roll takes you don't like.
+
 ## Docker
 
 ```sh

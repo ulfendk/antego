@@ -2,14 +2,17 @@
 # Renders content/lines/*.yaml -> packages/client/public/voice/*.mp3 + manifest.json, which are committed.
 #
 #   npm run voice            (see tools/voice/render.sh)
+#   npm run voice -- --gpu   NVIDIA GPU build (CUDA wheels, amd64 only)
 FROM python:3.12-slim
+
+# CPU wheels by default (small, amd64 + arm64); render.sh --gpu passes the CUDA index instead.
+ARG TORCH_INDEX=https://download.pytorch.org/whl/cpu
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
-# CPU-only torch keeps the image small and works on amd64 and arm64.
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+RUN pip install --no-cache-dir --index-url ${TORCH_INDEX} \
       torch==2.6.0 torchaudio==2.6.0 \
  && pip install --no-cache-dir chatterbox-tts==0.1.7 pyyaml huggingface_hub
 
