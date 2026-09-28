@@ -57,7 +57,7 @@ export class LocalController implements Controller {
     private difficulty: Difficulty = 'mellem',
   ) {
     this.state = createGame(randomSeed(), options);
-    this.aiTeam = mode === 'ai' ? 'brun' : null;
+    this.aiTeam = mode === 'ai' ? 'sand' : null;
     this.viewer = 'groen';
     if (this.aiTeam) {
       const seed = randomSeed();
@@ -88,7 +88,7 @@ export class LocalController implements Controller {
   }
 
   me(view: GameView): Team {
-    return this.aiTeam ? (this.aiTeam === 'groen' ? 'brun' : 'groen') : view.turn;
+    return this.aiTeam ? (this.aiTeam === 'groen' ? 'sand' : 'groen') : view.turn;
   }
 
   setup(team: Team, placement: Placement[]) {
@@ -108,7 +108,7 @@ export class LocalController implements Controller {
     if (this.state.phase !== 'battle' || !b) return;
     this.scores[team] = score;
     const attacker = this.state.pieces.find((p) => p.id === b.attackerId)!.team;
-    const defender: Team = attacker === 'groen' ? 'brun' : 'groen';
+    const defender: Team = attacker === 'groen' ? 'sand' : 'groen';
     const a = this.scores[attacker];
     const d = this.scores[defender];
     if (a === undefined || d === undefined) return;

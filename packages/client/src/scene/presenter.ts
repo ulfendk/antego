@@ -104,7 +104,7 @@ export class Presenter {
         this.fallen.delete(id);
       }
     }
-    const perTeam: Record<Team, number> = { groen: 0, brun: 0 };
+    const perTeam: Record<Team, number> = { groen: 0, sand: 0, blaa: 0, brun: 0 };
     for (const p of view.fallen) {
       let obj = this.fallen.get(p.id);
       if (!obj) {

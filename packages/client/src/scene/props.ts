@@ -139,11 +139,11 @@ function boxLid(boardPrint: THREE.Texture) {
 /** Everything on the table around the board: toy boxes, the game box, a couple of spare soldiers. */
 export function buildProps(kit: PieceKit, boardPrint: THREE.Texture) {
   const group = new THREE.Group();
-  group.add(toyBox('groen'), toyBox('brun'), boxLid(boardPrint));
+  group.add(toyBox('groen'), toyBox('sand'), boxLid(boardPrint));
   // Spare soldiers that never made it into the game.
   const spares: [Team, 'spejder' | 'sergent', number, number, number][] = [
     ['groen', 'spejder', 8.6, -6.4, 0.6],
-    ['brun', 'sergent', -7.2, 7.6, 2.4],
+    ['sand', 'sergent', -7.2, 7.6, 2.4],
   ];
   for (const [team, rank, x, z, ry] of spares) {
     const s = soldierMesh(kit, rank, team, 1);

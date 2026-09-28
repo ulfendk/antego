@@ -32,6 +32,8 @@ export class PieceKit {
   models = new Map<Rank, ModelSet>();
   plastic: Record<Team, THREE.MeshPhysicalMaterial> = {
     groen: plasticMaterial(TEAM_COLORS.groen.plastic),
+    sand: plasticMaterial(TEAM_COLORS.sand.plastic),
+    blaa: plasticMaterial(TEAM_COLORS.blaa.plastic),
     brun: plasticMaterial(TEAM_COLORS.brun.plastic),
   };
   private badges = new Map<string, THREE.SpriteMaterial>();
@@ -111,6 +113,14 @@ export class PieceKit {
 
 export const PIECE_SCALE = 1.3;
 
+/** Soldiers face the enemy: the models look along +Z, so turn each army towards its front. */
+const FACING: Record<Team, number> = {
+  groen: Math.PI, // towards -Z
+  sand: 0, // towards +Z
+  blaa: Math.PI / 2, // towards +X
+  brun: -Math.PI / 2, // towards -X
+};
+
 /** One piece on the table: a soldier (or a hidden tile for unknown enemies), its contact shadow and badge. */
 export class PieceObject extends THREE.Group {
   rank: Rank | null = null;
@@ -132,7 +142,7 @@ export class PieceObject extends THREE.Group {
     // A touch bigger than a real army man on a Stratego square, so small screens read well.
     this.scale.setScalar(PIECE_SCALE);
     // Soldiers face the enemy: green looks towards -Z, brown towards +Z.
-    this.body.rotation.y = team === 'groen' ? Math.PI : 0;
+    this.body.rotation.y = FACING[team];
   }
 
   /** Show the soldier for a known rank, or the army's hidden card for null. */

@@ -3,9 +3,9 @@ lines:
   - id: tur_groen
     speaker: groen
     text: Grøn hær – det er jeres tur!
-  - id: tur_brun
-    speaker: brun
-    text: Brun hær – det er jeres tur!
+  - id: tur_sand
+    speaker: sand
+    text: Sandfarvet hær – det er jeres tur!
   - id: din_tur
     speaker: sergent
     text: Din tur, soldat!
@@ -15,9 +15,9 @@ lines:
   - id: giv_groen
     speaker: fortaeller
     text: Giv skærmen til den grønne hær. Ingen kigger!
-  - id: giv_brun
+  - id: giv_sand
     speaker: fortaeller
-    text: Giv skærmen til den brune hær. Ingen kigger!
+    text: Giv skærmen til den sandfarvede hær. Ingen kigger!
   - id: jeg_er_klar
     speaker: fortaeller
     text: Jeg er klar

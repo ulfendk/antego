@@ -314,7 +314,7 @@ export class App {
     this.show();
     c.setup(s.team, s.placement);
     if (c.mode === 'hotseat' && s.team === 'groen') {
-      this.handover('brun', () => this.startSetup('brun'));
+      this.handover('sand', () => this.startSetup('sand'));
     } else if (c.mode === 'online' && this.view?.phase === 'setup') {
       this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     }
@@ -373,7 +373,7 @@ export class App {
       h(
         'div',
         { class: `panel handover ${team}` },
-        line(team === 'groen' ? 'spil.giv_groen' : 'spil.giv_brun', 'h2'),
+        line(team === 'groen' ? 'spil.giv_groen' : 'spil.giv_sand', 'h2'),
         button(
           'spil.jeg_er_klar',
           () => {
@@ -399,7 +399,7 @@ export class App {
       c.mode === 'hotseat'
         ? view.turn === 'groen'
           ? 'spil.tur_groen'
-          : 'spil.tur_brun'
+          : 'spil.tur_sand'
         : mine
           ? 'spil.din_tur'
           : c.mode === 'ai'
@@ -638,7 +638,7 @@ export class App {
     if (view.placed[me]) {
       this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     } else if (this.opponentHere) {
-      toast(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_brun');
+      toast(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_sand');
       this.startSetup(me);
     } else {
       this.waitingRoom(c.code);

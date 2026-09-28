@@ -1,12 +1,12 @@
 import { minigameOutcome, resolveBattle } from './battle.js';
-import { hasAnyMove, legalTargets, pieceAt, samePos } from './board.js';
+import { BOARDS, hasAnyMove, legalTargets, pieceAt, samePos } from './board.js';
 import { mixSeed } from './rng.js';
 import { validatePlacement } from './setup.js';
 import {
   DEFAULT_OPTIONS,
   MINIGAMES,
-  other,
   type Action,
+  type BoardId,
   type BattleOutcome,
   type GameEvent,
   type GameOptions,
@@ -31,15 +31,30 @@ export interface ActionResult {
   events: GameEvent[];
 }
 
-export function createGame(seed: number, options: Partial<GameOptions> = {}): GameState {
+export interface GameSetup {
+  /** Classic 10×10 for two; the plus-shaped "kryds" board for three or four. */
+  board?: BoardId;
+  players?: 2 | 3 | 4;
+}
+
+export function createGame(
+  seed: number,
+  options: Partial<GameOptions> = {},
+  setup: GameSetup = {},
+): GameState {
+  const board = setup.board ?? 'klassisk';
+  const teams = [...BOARDS[board].seats[setup.players ?? 2]];
   return {
     phase: 'setup',
     options: { ...DEFAULT_OPTIONS, ...options },
+    board,
+    teams,
+    out: [],
     seed: seed >>> 0,
     battleCount: 0,
-    turn: 'groen',
+    turn: teams[0]!,
     turnNumber: 0,
-    placed: { groen: false, brun: false },
+    placed: {},
     pieces: [],
     fallen: [],
     history: [],
@@ -64,8 +79,7 @@ export function applyAction(prev: GameState, action: Action): ActionResult {
       doMinigameResult(state, events, action.scores);
       break;
     case 'resign':
-      if (state.phase === 'over') throw new RuleError('spillet er slut');
-      finish(state, events, other(action.team), 'opgivet');
+      doResign(state, events, action.team);
       break;
   }
   return { state, events };
@@ -78,8 +92,9 @@ function doSetup(
   placement: readonly Placement[],
 ) {
   if (state.phase !== 'setup') throw new RuleError('opstillingen er slut');
+  if (!state.teams.includes(team)) throw new RuleError('ikke med i spillet');
   if (state.placed[team]) throw new RuleError('allerede stillet op');
-  const problem = validatePlacement(team, placement);
+  const problem = validatePlacement(team, placement, BOARDS[state.board]);
   if (problem) throw new RuleError(problem);
   placement.forEach((p, i) =>
     state.pieces.push({
@@ -94,20 +109,24 @@ function doSetup(
   );
   state.placed[team] = true;
   events.push({ type: 'placed', team });
-  if (state.placed.groen && state.placed.brun) {
+  if (state.teams.every((t) => state.placed[t])) {
     state.phase = 'play';
-    state.turn = 'groen';
+    state.turn = state.teams[0]!;
     state.turnNumber = 1;
-    events.push({ type: 'started' }, { type: 'turn', team: 'groen' });
+    events.push({ type: 'started' }, { type: 'turn', team: state.turn });
   }
 }
 
 function doMove(state: GameState, events: GameEvent[], team: Team, pieceId: string, to: Pos) {
   if (state.phase !== 'play') throw new RuleError('ikke tid til at flytte');
-  if (state.turn !== team) throw new RuleError('ikke din tur');
+  if (state.turn !== team || state.out.includes(team)) throw new RuleError('ikke din tur');
   const piece = state.pieces.find((p) => p.id === pieceId);
   if (!piece || piece.team !== team) throw new RuleError('ukendt brik');
-  if (!legalTargets(state.pieces, state.history, piece).some((t) => samePos(t, to))) {
+  if (
+    !legalTargets(state.pieces, state.history, piece, BOARDS[state.board]).some((t) =>
+      samePos(t, to),
+    )
+  ) {
     throw new RuleError('ulovligt træk');
   }
 
@@ -198,22 +217,63 @@ function settleBattle(
   }
   events.push({ type: 'battleResolved', outcome, fallen: fallen.map((p) => p.id) });
 
+  // Taking the flag knocks that army out (and wins outright when it was the last enemy).
   if (defender.rank === 'flag' && outcome === 'attacker') {
-    finish(state, events, attacker.team, 'flag');
-    return;
+    if (knockOut(state, events, defender.team, 'flag')) return;
   }
   endTurn(state, events);
 }
 
+function doResign(state: GameState, events: GameEvent[], team: Team) {
+  if (state.phase === 'over') throw new RuleError('spillet er slut');
+  if (!state.teams.includes(team) || state.out.includes(team))
+    throw new RuleError('ikke med i spillet');
+  // A battle this army was part of is called off.
+  if (state.phase === 'battle') {
+    state.phase = 'play';
+    state.pendingBattle = null;
+  }
+  if (knockOut(state, events, team, 'opgivet')) return;
+  if (state.turn === team && state.phase === 'play') endTurn(state, events);
+}
+
+/** Hand the turn to the next army still in the game; armies that can't move are knocked out. */
 function endTurn(state: GameState, events: GameEvent[]) {
-  const next = other(state.turn);
-  if (!hasAnyMove(state.pieces, state.history, next)) {
-    finish(state, events, state.turn, 'ingen-traek');
+  const board = BOARDS[state.board];
+  let i = state.teams.indexOf(state.turn);
+  for (let step = 0; step < state.teams.length; step++) {
+    i = (i + 1) % state.teams.length;
+    const team = state.teams[i]!;
+    if (state.out.includes(team)) continue;
+    if (team !== state.turn && !hasAnyMove(state.pieces, state.history, team, board)) {
+      if (knockOut(state, events, team, 'ingen-traek')) return;
+      continue;
+    }
+    state.turn = team;
+    state.turnNumber++;
+    events.push({ type: 'turn', team });
     return;
   }
-  state.turn = next;
-  state.turnNumber++;
-  events.push({ type: 'turn', team: next });
+}
+
+/**
+ * An army is out. If only one is left it wins; otherwise the loser's remaining soldiers are
+ * packed into its toy box and the game goes on. Returns true when the game is over.
+ */
+function knockOut(state: GameState, events: GameEvent[], team: Team, reason: WinReason): boolean {
+  if (!state.out.includes(team)) state.out.push(team);
+  const active = state.teams.filter((t) => !state.out.includes(t));
+  if (active.length <= 1) {
+    finish(state, events, active[0] ?? team, reason);
+    return true;
+  }
+  const removed = state.pieces.filter((p) => p.team === team);
+  for (const p of removed) p.revealed = true;
+  state.pieces = state.pieces.filter((p) => p.team !== team);
+  state.fallen.push(...removed);
+  state.history = state.history.filter((m) => m.team !== team);
+  events.push({ type: 'out', team, reason, removed: removed.map((p) => p.id) });
+  return false;
 }
 
 function finish(state: GameState, events: GameEvent[], winner: Team, reason: WinReason) {

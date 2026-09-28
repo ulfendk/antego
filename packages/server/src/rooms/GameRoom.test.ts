@@ -68,21 +68,21 @@ describe('GameRoom', () => {
     const guestBox = track(guest);
 
     expect((await until(hostBox, () => true)).viewer).toBe('groen');
-    expect((await until(guestBox, () => true)).viewer).toBe('brun');
+    expect((await until(guestBox, () => true)).viewer).toBe('sand');
 
     host.send('setup', { placement: presetPlacement('groen', 'forsvar') });
-    guest.send('setup', { placement: presetPlacement('brun', 'angreb') });
+    guest.send('setup', { placement: presetPlacement('sand', 'angreb') });
 
     const hv = await until(hostBox, (v) => v.phase === 'play');
     const gv = await until(guestBox, (v) => v.phase === 'play');
     expect(hv.pieces).toHaveLength(80);
-    expect(hv.pieces.filter((p) => p.team === 'brun').every((p) => p.rank === null)).toBe(true);
+    expect(hv.pieces.filter((p) => p.team === 'sand').every((p) => p.rank === null)).toBe(true);
     expect(gv.pieces.filter((p) => p.team === 'groen').every((p) => p.rank === null)).toBe(true);
 
     // Green moves a front-row piece forward.
     const mover = hv.pieces.find((p) => p.team === 'groen' && p.y === 6 && p.x === 0)!;
     host.send('move', { pieceId: mover.id, to: { x: 0, y: 5 } });
-    const after = await until(guestBox, (v) => v.turn === 'brun');
+    const after = await until(guestBox, (v) => v.turn === 'sand');
     expect(after.pieces.find((p) => p.id === mover.id)).toMatchObject({ x: 0, y: 5, rank: null });
 
     await host.leave();
@@ -100,20 +100,20 @@ describe('GameRoom', () => {
     const guest = await b.joinById(host.roomId, { protocol: PROTOCOL_VERSION });
     const guestBox = track(guest);
     host.send('setup', { placement: presetPlacement('groen', 'forsvar') });
-    guest.send('setup', { placement: presetPlacement('brun', 'angreb') });
+    guest.send('setup', { placement: presetPlacement('sand', 'angreb') });
     const hv = await until(hostBox, (v) => v.phase === 'play');
     const scout = hv.pieces.find((p) => p.team === 'groen' && p.rank === 'spejder' && p.y === 6)!;
     const target = hv.pieces
-      .filter((p) => p.team === 'brun' && p.x === scout.x)
+      .filter((p) => p.team === 'sand' && p.x === scout.x)
       .sort((p, q) => q.y - p.y)[0]!;
     host.send('move', { pieceId: scout.id, to: { x: target.x, y: target.y } });
     const battle = await until(guestBox, (v) => v.phase === 'battle');
     expect(battle.pendingBattle?.seed).toBeTypeOf('number');
     host.send('minigameScore', { score: 100 });
     guest.send('minigameScore', { score: 0 });
-    const after = await until(hostBox, (v) => v.phase === 'play' && v.turn === 'brun');
+    const after = await until(hostBox, (v) => v.phase === 'play' && v.turn === 'sand');
     // Green won the mini-game, so the brown defender fell.
-    expect(after.fallen.map((p) => p.team)).toEqual(['brun']);
+    expect(after.fallen.map((p) => p.team)).toEqual(['sand']);
     await host.leave();
     await guest.leave();
   });

@@ -499,7 +499,9 @@ export function woodMaps(size = 1024) {
 
 export const TEAM_COLORS: Record<Team, { plastic: string; card: string; ink: string }> = {
   groen: { plastic: '#2f6a12', card: '#557a34', ink: '#e8e4c8' },
-  brun: { plastic: '#c28a4a', card: '#a8824e', ink: '#3b2a16' },
+  sand: { plastic: '#c28a4a', card: '#a8824e', ink: '#3b2a16' },
+  blaa: { plastic: '#5d7486', card: '#6d8294', ink: '#eef2f5' },
+  brun: { plastic: '#6b4428', card: '#7a5234', ink: '#f0e2cf' },
 };
 
 /**

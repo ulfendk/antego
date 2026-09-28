@@ -26,7 +26,7 @@ const STEPS: Step[] = [
   { line: 'tutorial.velkommen' },
   { line: 'tutorial.maal', hint: (v) => at(v, (p) => p.id.endsWith('-flag')) },
   { line: 'tutorial.dine', hint: (v) => at(v, (p) => p.team === 'groen') },
-  { line: 'tutorial.fjender', hint: (v) => at(v, (p) => p.team === 'brun') },
+  { line: 'tutorial.fjender', hint: (v) => at(v, (p) => p.team === 'sand') },
   { line: 'tutorial.flyt', hint: (v) => ahead(v), wait: 'move' },
   { line: 'tutorial.flot_flyt' },
   { line: 'tutorial.soeer', hint: () => [...LAKES] },

@@ -1,8 +1,15 @@
+/** Size of the classic 2-player board (the 3–4 player "kryds" board is larger, see board.ts). */
 export const BOARD_SIZE = 10;
 
-export type Team = 'groen' | 'brun';
-export const TEAMS: readonly Team[] = ['groen', 'brun'];
-export const other = (t: Team): Team => (t === 'groen' ? 'brun' : 'groen');
+/** Army colours, like real army men: green and sand (tan), plus grey-blue and brown for 3–4 players. */
+export type Team = 'groen' | 'sand' | 'blaa' | 'brun';
+export const TEAMS: readonly Team[] = ['groen', 'sand', 'blaa', 'brun'];
+/** The opponent in a 2-player game. */
+export const other = (t: Team): Team => (t === 'groen' ? 'sand' : 'groen');
+
+export type BoardId = 'klassisk' | 'kryds';
+/** Classic 40-piece army, or the quicker 24-piece army used on the 3–4 player board. */
+export type ArmyId = 'klassisk' | 'lille';
 
 export type Rank =
   | 'marskal'
@@ -42,6 +49,25 @@ export const RANKS: Record<Rank, RankInfo> = {
 
 export const RANK_ORDER = Object.keys(RANKS) as Rank[];
 export const ARMY_SIZE = RANK_ORDER.reduce((n, r) => n + RANKS[r].count, 0);
+
+/** How many of each rank an army has. */
+export const ARMIES: Record<ArmyId, Record<Rank, number>> = {
+  klassisk: Object.fromEntries(RANK_ORDER.map((r) => [r, RANKS[r].count])) as Record<Rank, number>,
+  lille: {
+    marskal: 1,
+    general: 1,
+    oberst: 1,
+    major: 2,
+    kaptajn: 2,
+    loejtnant: 2,
+    sergent: 2,
+    minoer: 3,
+    spejder: 4,
+    spion: 1,
+    mine: 4,
+    flag: 1,
+  },
+};
 
 export interface Pos {
   x: number;
@@ -98,11 +124,17 @@ export interface MoveRecord {
 export interface GameState {
   phase: Phase;
   options: GameOptions;
+  /** Which board this game is played on. */
+  board: BoardId;
+  /** The armies in this game, in turn order. */
+  teams: Team[];
+  /** Armies that are out (flag taken, no moves left, or gave up). */
+  out: Team[];
   seed: number;
   battleCount: number;
   turn: Team;
   turnNumber: number;
-  placed: Record<Team, boolean>;
+  placed: Partial<Record<Team, boolean>>;
   pieces: Piece[];
   fallen: Piece[];
   history: MoveRecord[];
@@ -146,6 +178,8 @@ export type GameEvent =
     }
   | { type: 'battleResolved'; outcome: BattleOutcome; fallen: string[] }
   | { type: 'turn'; team: Team }
+  /** An army is knocked out while others play on (3–4 players). */
+  | { type: 'out'; team: Team; reason: WinReason; removed: string[] }
   | { type: 'over'; winner: Team; reason: WinReason };
 
 export type BattleReason =

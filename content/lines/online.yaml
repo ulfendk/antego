@@ -45,9 +45,9 @@ lines:
   - id: du_er_groen
     speaker: groen
     text: Du fører den grønne hær.
-  - id: du_er_brun
-    speaker: brun
-    text: Du fører den brune hær.
+  - id: du_er_sand
+    speaker: sand
+    text: Du fører den sandfarvede hær.
   - id: venter_opstilling
     speaker: fortaeller
     text: Venter på, at modstanderen stiller op …

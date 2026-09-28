@@ -1,5 +1,5 @@
 import { CLOSE_FIGHT_MAX_DIFF, MAX_HANDICAP } from './battle.js';
-import { legalTargets, pieceAt } from './board.js';
+import { BOARDS, legalTargets, pieceAt } from './board.js';
 import { createRng } from './rng.js';
 import {
   RANKS,
@@ -49,7 +49,7 @@ export function chooseAiMove(view: GameView, difficulty: Difficulty, seed: numbe
   let best: AiMove | null = null;
   let bestScore = -Infinity;
   for (const piece of mine) {
-    for (const to of legalTargets(view.pieces, view.history, piece)) {
+    for (const to of legalTargets(view.pieces, view.history, piece, BOARDS[view.board])) {
       let score = scoreMove(view, piece, to, knownStrong, view.options.minigames);
       score += (rng() - 0.5) * 2 * NOISE[difficulty];
       if (score > bestScore) {
@@ -70,8 +70,9 @@ function scoreMove(
 ): number {
   const rank = piece.rank!;
   const target = pieceAt(view.pieces, to);
-  // Green attacks upwards (towards y 0), brown downwards.
-  const forward = piece.team === 'groen' ? piece.y - to.y : to.y - piece.y;
+  // Progress towards the enemy, along this army's own "forward" direction.
+  const dir = BOARDS[view.board].forward[piece.team] ?? { x: 0, y: 0 };
+  const forward = (to.x - piece.x) * dir.x + (to.y - piece.y) * dir.y;
   let score = forward * 0.6;
 
   if (target) {
@@ -82,6 +83,16 @@ function scoreMove(
       if (Math.abs(e.x - to.x) + Math.abs(e.y - to.y) === 1 && beats(e.rank!, rank)) {
         score -= VALUE[rank] * 0.8;
       }
+    }
+    // Head for the nearest enemy soldier that isn't known to be stronger (on a big board the
+    // armies would otherwise wander past each other).
+    const prey = view.pieces.filter(
+      (e) => e.team !== piece.team && !(e.rank && RANKS[e.rank].movable && beats(e.rank, rank)),
+    );
+    if (prey.length) {
+      const dist = (p: Pos) =>
+        Math.min(...prey.map((e) => Math.abs(e.x - p.x) + Math.abs(e.y - p.y)));
+      score += (dist(piece) - dist(to)) * 0.5;
     }
     // Scouts are for probing; big pieces should stay a bit back early on.
     if (rank === 'spejder') score += 0.5;

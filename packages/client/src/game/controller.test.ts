@@ -7,11 +7,11 @@ function battleGame(mode: 'ai' | 'hotseat') {
   const c = new LocalController(mode, { minigames: 'altid' });
   c.subscribe(() => undefined);
   c.setup('groen', presetPlacement('groen', 'forsvar'));
-  if (mode === 'hotseat') c.setup('brun', presetPlacement('brun', 'angreb'));
+  if (mode === 'hotseat') c.setup('sand', presetPlacement('sand', 'angreb'));
   const g = c.game;
   const scout = g.pieces.find((p) => p.team === 'groen' && p.rank === 'spejder' && p.y === 6)!;
   const target = g.pieces
-    .filter((p) => p.team === 'brun' && p.x === scout.x)
+    .filter((p) => p.team === 'sand' && p.x === scout.x)
     .sort((a, b) => b.y - a.y)[0]!;
   c.move('groen', scout.id, { x: target.x, y: target.y });
   return c;
@@ -21,7 +21,7 @@ describe('LocalController mini-games', () => {
   it('against the computer, only the human plays and the computer has already scored', () => {
     const c = battleGame('ai');
     expect(c.game.phase).toBe('battle');
-    expect(c.localPlayers('groen', 'brun')).toEqual(['groen']);
+    expect(c.localPlayers('groen', 'sand')).toEqual(['groen']);
     c.reportMinigame('groen', 100);
     expect(c.game.phase).not.toBe('battle');
     expect(c.game.fallen.length).toBeGreaterThan(0);
@@ -30,12 +30,12 @@ describe('LocalController mini-games', () => {
 
   it('hot-seat waits for both armies before settling the battle', () => {
     const c = battleGame('hotseat');
-    expect(c.localPlayers('groen', 'brun')).toEqual<Team[]>(['groen', 'brun']);
+    expect(c.localPlayers('groen', 'sand')).toEqual<Team[]>(['groen', 'sand']);
     c.reportMinigame('groen', 90);
     expect(c.game.phase).toBe('battle');
-    c.reportMinigame('brun', 10);
+    c.reportMinigame('sand', 10);
     expect(c.game.phase).toBe('play');
     // Green's scout won the mini-game, so the defender fell.
-    expect(c.game.fallen.map((p) => p.team)).toEqual(['brun']);
+    expect(c.game.fallen.map((p) => p.team)).toEqual(['sand']);
   });
 });

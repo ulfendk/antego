@@ -30,8 +30,10 @@ export interface SceneOverride {
 
 /** Default camera for each army: behind its own home rows, looking across the board. */
 const VIEW: Record<Team, { azimuth: number }> = {
-  groen: { azimuth: 0 },
-  brun: { azimuth: Math.PI },
+  groen: { azimuth: 0 }, // south, camera on +Z
+  sand: { azimuth: Math.PI }, // north
+  blaa: { azimuth: -Math.PI / 2 }, // west
+  brun: { azimuth: Math.PI / 2 }, // east
 };
 
 export class Stage {

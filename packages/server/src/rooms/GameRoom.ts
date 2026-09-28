@@ -29,7 +29,7 @@ export const MINIGAME_TIMEOUT_MS = 45_000;
 const LobbyState = schema(
   {
     groen: t.boolean().default(false),
-    brun: t.boolean().default(false),
+    sand: t.boolean().default(false),
   },
   'LobbyState',
 );
@@ -87,23 +87,23 @@ export class GameRoom extends Room<{ state: LobbyState }> {
 
   override onJoin(client: Client) {
     const taken = new Set(this.seats.values());
-    const team: Team = taken.has('groen') ? 'brun' : 'groen';
+    const team: Team = taken.has('groen') ? 'sand' : 'groen';
     this.seats.set(client.sessionId, team);
-    this.state[team] = true;
+    this.setConnected(team, true);
     this.sendView(client, []);
     this.broadcastOpponent();
   }
 
   override onDrop(client: Client) {
     const team = this.seats.get(client.sessionId);
-    if (team) this.state[team] = false;
+    if (team) this.setConnected(team, false);
     this.broadcastOpponent();
     this.allowReconnection(client, RECONNECT_SECONDS);
   }
 
   override onReconnect(client: Client) {
     const team = this.seats.get(client.sessionId);
-    if (team) this.state[team] = true;
+    if (team) this.setConnected(team, true);
     this.sendView(client, []);
     this.broadcastOpponent();
   }
@@ -112,7 +112,7 @@ export class GameRoom extends Room<{ state: LobbyState }> {
     const team = this.seats.get(client.sessionId);
     this.seats.delete(client.sessionId);
     if (!team) return;
-    this.state[team] = false;
+    this.setConnected(team, false);
     // Leaving a running game for good hands the win to the other player.
     if (this.game.phase !== 'over' && this.game.phase !== 'setup' && this.seats.size > 0) {
       this.apply({ type: 'resign', team });
@@ -155,7 +155,7 @@ export class GameRoom extends Room<{ state: LobbyState }> {
     const team = this.seats.get(client.sessionId);
     if (!team || this.game.phase !== 'battle' || team in this.scores) return;
     this.scores[team] = clampScore(Number(score));
-    if (this.scores.groen !== undefined && this.scores.brun !== undefined) this.finishMinigame();
+    if (this.scores.groen !== undefined && this.scores.sand !== undefined) this.finishMinigame();
   }
 
   private finishMinigame() {
@@ -164,7 +164,7 @@ export class GameRoom extends Room<{ state: LobbyState }> {
     const battle = this.game.pendingBattle;
     if (this.game.phase !== 'battle' || !battle) return;
     const attackerTeam = this.game.pieces.find((p) => p.id === battle.attackerId)!.team;
-    const defenderTeam: Team = attackerTeam === 'groen' ? 'brun' : 'groen';
+    const defenderTeam: Team = attackerTeam === 'groen' ? 'sand' : 'groen';
     this.apply({
       type: 'minigameResult',
       scores: {
@@ -179,11 +179,20 @@ export class GameRoom extends Room<{ state: LobbyState }> {
     client.send('view', { view: viewFor(this.game, team), events });
   }
 
+  // Online games are 2-player for now (seats groen/sand); 3–4 player rooms come next.
+  private setConnected(team: Team, on: boolean) {
+    if (team === 'groen' || team === 'sand') this.state[team] = on;
+  }
+
+  private isConnected(team: Team) {
+    return team === 'groen' || team === 'sand' ? this.state[team] : false;
+  }
+
   private broadcastOpponent() {
     for (const c of this.clients) {
       const team = this.seats.get(c.sessionId);
-      const opp: Team = team === 'groen' ? 'brun' : 'groen';
-      c.send('opponent', { connected: this.state[opp] });
+      const opp: Team = team === 'groen' ? 'sand' : 'groen';
+      c.send('opponent', { connected: this.isConnected(opp) });
     }
   }
 }

@@ -21,11 +21,11 @@ const LAYOUT: [Team, Rank, number, number][] = [
   ['groen', 'mine', 3, 9],
   ['groen', 'spion', 8, 8],
   ['groen', 'flag', 5, 9],
-  ['brun', 'sergent', 4, 5],
-  ['brun', 'flag', 4, 3],
-  ['brun', 'mine', 8, 2],
-  ['brun', 'spejder', 0, 0],
-  ['brun', 'spion', 9, 1],
+  ['sand', 'sergent', 4, 5],
+  ['sand', 'flag', 4, 3],
+  ['sand', 'mine', 8, 2],
+  ['sand', 'spejder', 0, 0],
+  ['sand', 'spion', 9, 1],
 ];
 
 export const CAPTAIN = 'groen-kaptajn';
@@ -53,7 +53,7 @@ export class TutorialController implements Controller {
       ...createGame(7, { minigames: 'aldrig' }),
       phase: 'play',
       turnNumber: 1,
-      placed: { groen: true, brun: true },
+      placed: { groen: true, sand: true },
       pieces,
     };
   }
@@ -81,9 +81,9 @@ export class TutorialController implements Controller {
 
   move(team: Team, pieceId: string, to: Pos) {
     const { state, events } = applyAction(this.state, { type: 'move', team, pieceId, to });
-    // Brown "passes": hand the turn straight back to green.
+    // The sand army "passes": hand the turn straight back to green.
     let out: GameEvent[] = events;
-    if (state.phase === 'play' && state.turn === 'brun') {
+    if (state.phase === 'play' && state.turn === 'sand') {
       state.turn = 'groen';
       state.turnNumber++;
       out = events.map((e) => (e.type === 'turn' ? { type: 'turn', team: 'groen' } : e));

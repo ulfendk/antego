@@ -17,7 +17,7 @@ describe('TutorialController', () => {
       expect(c.game.turn).toBe('groen');
       expect(c.game.phase).toBe('play');
     }
-    expect(c.game.fallen.map((p) => `${p.team}-${p.rank}`)).toEqual(['brun-sergent']);
+    expect(c.game.fallen.map((p) => `${p.team}-${p.rank}`)).toEqual(['sand-sergent']);
     c.move('groen', CAPTAIN, path[3]!);
     expect(c.game.phase).toBe('over');
     expect(c.game.winner).toBe('groen');
@@ -29,7 +29,7 @@ describe('TutorialController', () => {
     expect(
       c
         .view()
-        .pieces.filter((p) => p.team === 'brun')
+        .pieces.filter((p) => p.team === 'sand')
         .every((p) => p.rank === null),
     ).toBe(true);
   });

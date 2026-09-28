@@ -1,7 +1,7 @@
 import type { GameEvent, GameOptions, GameView, Placement, Pos } from './types.js';
 
 /** Bump when client and server can no longer talk to each other; old clients are then force-updated. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export const ROOM_GAME = 'spil';
 export const ERR_OUTDATED_CLIENT = 4426;
 export const ERR_ROOM_FULL = 4409;
