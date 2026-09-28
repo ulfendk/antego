@@ -4,7 +4,7 @@ import { h, line } from './dom.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const GOLD = '#e0b43c';
-const SILVER = '#d7dde2';
+const SILVER = '#aeb8bf';
 const EDGE = '#2d3419';
 
 function svg(w: number, children: string) {
@@ -39,19 +39,23 @@ const bars = (n: number) =>
     ).join(''),
   );
 
-const chevrons = (n: number, extra = '') =>
-  svg(
-    24 + (extra ? 14 : 0),
+const chevrons = (n: number, extra = '') => {
+  // Stack the chevrons around the vertical middle, 6 units apart.
+  const top = 12 - ((n - 1) * 6) / 2 - 2;
+  const one = (y: number) => `3,${y + 5} 12,${y} 21,${y + 5}`;
+  return svg(
+    24 + (extra ? 16 : 0),
     Array.from(
       { length: n },
       (_, i) =>
-        `<polyline points="3,${6 + i * 6} 12,${1 + i * 6} 21,${6 + i * 6}" fill="none" stroke="${EDGE}" stroke-width="5" stroke-linejoin="round"/>` +
-        `<polyline points="3,${6 + i * 6} 12,${1 + i * 6} 21,${6 + i * 6}" fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linejoin="round"/>`,
+        `<polyline points="${one(top + i * 6)}" fill="none" stroke="${EDGE}" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round"/>` +
+        `<polyline points="${one(top + i * 6)}" fill="none" stroke="${GOLD}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>`,
     ).join('') + extra,
   );
+};
 
 // A little shovel next to the minør's chevrons.
-const SHOVEL = `<g transform="translate(26 0)"><rect x="4.5" y="2" width="2" height="12" fill="${EDGE}"/><path d="M1 13h9l-1.5 7a3 3 0 0 1-6 0z" fill="${SILVER}" stroke="${EDGE}" stroke-width="1.2"/></g>`;
+const SHOVEL = `<g transform="translate(26 0)"><rect x="4.2" y="1.5" width="3.6" height="12" rx="1" fill="#8a5a2b" stroke="${EDGE}" stroke-width="1"/><path d="M0.5 12.5h11l-1.8 7.5a4 4 0 0 1-7.4 0z" fill="${SILVER}" stroke="${EDGE}" stroke-width="1.4"/></g>`;
 
 /**
  * Rank insignia ("distinktioner"): gold stars for the generals and field officers, silver bars
