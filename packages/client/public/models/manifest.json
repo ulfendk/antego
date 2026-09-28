@@ -1,78 +1,250 @@
 {
   "sergent": {
-    "hash": "fda16df5d8a1-sergent",
+    "hash": "f85e09b8332e-sergent",
     "file": "sergent.glb",
     "lod1": "sergent-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "marskal": {
-    "hash": "fda16df5d8a1-marskal",
+    "hash": "f85e09b8332e-marskal",
     "file": "marskal.glb",
     "lod1": "marskal-lod1.glb",
-    "tris": 29999
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "general": {
-    "hash": "fda16df5d8a1-general",
+    "hash": "f85e09b8332e-general",
     "file": "general.glb",
     "lod1": "general-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "oberst": {
-    "hash": "fda16df5d8a1-oberst",
+    "hash": "f85e09b8332e-oberst",
     "file": "oberst.glb",
     "lod1": "oberst-lod1.glb",
-    "tris": 30000
+    "tris": 30000,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "major": {
-    "hash": "fda16df5d8a1-major",
+    "hash": "f85e09b8332e-major",
     "file": "major.glb",
     "lod1": "major-lod1.glb",
-    "tris": 30000
+    "tris": 30000,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "kaptajn": {
-    "hash": "fda16df5d8a1-kaptajn",
+    "hash": "f85e09b8332e-kaptajn",
     "file": "kaptajn.glb",
     "lod1": "kaptajn-lod1.glb",
-    "tris": 30000
+    "tris": 30000,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "loejtnant": {
-    "hash": "fda16df5d8a1-loejtnant",
+    "hash": "f85e09b8332e-loejtnant",
     "file": "loejtnant.glb",
     "lod1": "loejtnant-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "minoer": {
-    "hash": "fda16df5d8a1-minoer",
+    "hash": "f85e09b8332e-minoer",
     "file": "minoer.glb",
     "lod1": "minoer-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "spejder": {
-    "hash": "fda16df5d8a1-spejder",
+    "hash": "f85e09b8332e-spejder",
     "file": "spejder.glb",
     "lod1": "spejder-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "spion": {
-    "hash": "fda16df5d8a1-spion",
+    "hash": "f85e09b8332e-spion",
     "file": "spion.glb",
     "lod1": "spion-lod1.glb",
-    "tris": 30000
+    "tris": 29999,
+    "bones": [
+      "root",
+      "pelvis",
+      "spine",
+      "chest",
+      "head",
+      "upperarm_r",
+      "forearm_r",
+      "hand_r",
+      "upperarm_l",
+      "forearm_l",
+      "hand_l",
+      "thigh_r",
+      "shin_r",
+      "thigh_l",
+      "shin_l"
+    ]
   },
   "mine": {
-    "hash": "fda16df5d8a1-mine",
+    "hash": "f85e09b8332e-mine",
     "file": "mine.glb",
     "lod1": "mine-lod1.glb",
-    "tris": 30000
+    "tris": 30000,
+    "bones": null
   },
   "flag": {
-    "hash": "fda16df5d8a1-flag",
+    "hash": "f85e09b8332e-flag",
     "file": "flag.glb",
     "lod1": "flag-lod1.glb",
-    "tris": 30000
+    "tris": 30000,
+    "bones": null
   },
   "jeep-wheel": {
-    "hash": "385c6ddfff06-jeep-wheel",
+    "hash": "9ad5b854f1de-jeep-wheel",
     "file": "jeep-wheel.glb",
     "tris": 8000,
     "parts": [
@@ -99,19 +271,19 @@
     ]
   },
   "jeep": {
-    "hash": "385c6ddfff06-jeep",
+    "hash": "9ad5b854f1de-jeep",
     "file": "jeep.glb",
     "tris": 59999,
     "parts": null
   },
   "tank": {
-    "hash": "385c6ddfff06-tank",
+    "hash": "9ad5b854f1de-tank",
     "file": "tank.glb",
     "tris": 59996,
     "parts": null
   },
   "tank-turret": {
-    "hash": "385c6ddfff06-tank-turret",
+    "hash": "9ad5b854f1de-tank-turret",
     "file": "tank-turret.glb",
     "tris": 40000,
     "parts": [

@@ -88,8 +88,12 @@ def smax(a, b, k):
 
 
 class Prim:
-    def __init__(self, fn, lo, hi, k, op="add"):
+    def __init__(self, fn, lo, hi, k, op="add", tag=None):
         self.fn, self.lo, self.hi, self.k, self.op = fn, V(lo), V(hi), k, op
+        # Which bone of the figure's skeleton this part belongs to (None: work it out).
+        self.tag = tag
+        # Parts of one prop (a rifle's stock, barrel …) share a group and move as one.
+        self.group = None
 
 
 def _local(X, Y, Z, c, R):
@@ -112,9 +116,11 @@ def _box_bounds(c, R, half):
 class Sculpt:
     def __init__(self):
         self.prims = []
+        #: Bone for the parts added from now on (see Soldier.build and skin()).
+        self.tag = None
 
     def add(self, fn, lo, hi, k, op="add"):
-        self.prims.append(Prim(fn, lo, hi, k, op))
+        self.prims.append(Prim(fn, lo, hi, k, op, self.tag))
 
     # --- primitives (all take a blend radius k)
 
@@ -297,16 +303,18 @@ class Sculpt:
 
     # --- evaluation
 
-    def mesh(self, voxel, floor=True):
+    def mesh(self, voxel, floor=True, only=None):
+        """Mesh the sculpt (or just the parts `only` accepts) with marching cubes."""
+        prims = [p for p in self.prims if only is None or only(p)]
         pad = 3 * voxel + SOFT
-        lo = V((min(p.lo.x for p in self.prims), min(p.lo.y for p in self.prims), min(p.lo.z for p in self.prims))) - V((pad,) * 3)
-        hi = V((max(p.hi.x for p in self.prims), max(p.hi.y for p in self.prims), max(p.hi.z for p in self.prims))) + V((pad,) * 3)
+        lo = V((min(p.lo.x for p in prims), min(p.lo.y for p in prims), min(p.lo.z for p in prims))) - V((pad,) * 3)
+        hi = V((max(p.hi.x for p in prims), max(p.hi.y for p in prims), max(p.hi.z for p in prims))) + V((pad,) * 3)
         if floor:
             lo.z = max(lo.z, -voxel * 2)
         n = [int(math.ceil((hi[i] - lo[i]) / voxel)) + 1 for i in range(3)]
         axes = [np.float32(lo[i]) + np.arange(n[i], dtype=np.float32) * np.float32(voxel) for i in range(3)]
         D = np.full(n, 1.0, dtype=np.float32)
-        for p in self.prims:
+        for p in prims:
             m = p.k + 2 * voxel
             sl = []
             for i in range(3):
@@ -456,11 +464,16 @@ class Soldier:
         tr = self.torso.to_3x3()
         hr = self.head.to_3x3()
         t = self.torso
+        sc = soft.s
         # Torso: hips, belly and a chunky chest, blended soft.
+        sc.tag = "pelvis"
         soft.ellipsoid(j["pelvis"] + t.to_3x3() @ V((0, 0.004, 0.012)), 0.08, 0.056, 0.056, tr)
+        sc.tag = "spine"
         soft.ellipsoid(j["waist"], 0.076, 0.052, 0.056, tr)
+        sc.tag = "chest"
         soft.ellipsoid(j["chest"], 0.088, 0.058, 0.075, tr)
         soft.ellipsoid(t @ V((0, 0.004, 0.215)), 0.098, 0.048, 0.036, tr)  # shoulder yoke
+        sc.tag = "head"
         soft.capsule(j["neck"], self.head @ V((0, 0, 0.035)), 0.026)
         # Head with nose, chin and ears; the helmet is a hard prop.
         soft.ellipsoid(j["head"], 0.042, 0.045, 0.048, hr)
@@ -469,30 +482,44 @@ class Soldier:
         for x in (-1, 1):
             soft.ellipsoid(self.head @ V((x * 0.037, 0.0, 0.058)), 0.008, 0.011, 0.014, hr)
         for s in ("r", "l"):
+            sc.tag = "upperarm_" + s
             soft.capsule(j[s + "_shoulder"], j[s + "_elbow"], 0.035, 0.029)
+            sc.tag = "forearm_" + s
             soft.capsule(j[s + "_elbow"], j[s + "_hand"], 0.029, 0.024)
+            sc.tag = "hand_" + s
             if self.p["fists"]:
                 soft.ball(j[s + "_hand"], 0.026)
             else:
                 d = (j[s + "_hand"] - j[s + "_elbow"]).normalized()
                 soft.ellipsoid(j[s + "_hand"] + d * 0.012, 0.012, 0.022, 0.026, frame(d, V((0, -1, 0))) @ Matrix.Rotation(math.pi / 2, 3, "Y"))
+            sc.tag = "thigh_" + s
             soft.capsule(j[s + "_hip"], j[s + "_knee"], 0.05, 0.04)
+            sc.tag = "shin_" + s
             soft.capsule(j[s + "_knee"], j[s + "_ankle"], 0.039, 0.033)
-            # Trousers bloused over the boots, then the boot pointing forward.
+            # Trousers bloused over the boots, then the boot pointing forward. The boots are
+            # moulded onto the base plate, so they stay with it (the root) when he moves.
+            sc.tag = "root"
             soft.ball(j[s + "_ankle"] + V((0, 0, 0.02)), 0.038)
             toe = V(self.p["toes"].get(s, (0, -1, 0))).normalized()
             soft.capsule(j[s + "_ankle"] + V((0, 0.012, -0.014)), j[s + "_ankle"] + toe * 0.066 + V((0, 0, -0.018)), 0.03, 0.025)
         # Helmet: an M1-style dome with a flared rim, tipped forward like the toys.
+        sc.tag = "head"
         hm = self.head @ Matrix.Rotation(math.radians(-8), 4, "X")
         hard.s.dome(hm @ V((0, 0.0, 0.074)), (0.061, 0.067, 0.054), hm.to_3x3(), -0.18, HARD)
         hard.torus(hm @ V((0, 0.001, 0.064)), 0.062, 0.0072, hm.to_3x3(), scale=(1.0, 1.08, 0.75))
         # Collar, webbing belt with pouches, a canteen and a small pack on the back.
+        sc.tag = "chest"
         soft.s.torus(t @ V((0, -0.002, 0.245)), 0.03, 0.009, tr, SOFT * 0.5, (1.1, 1.0, 1.0))
+        sc.tag = "spine"
         hard.torus(t @ V((0, 0.002, 0.058)), 0.07, 0.009, tr, scale=(1.0, 0.74, 1.4))
         for x in (-0.04, 0.04):
             hard.box(t @ V((x, -0.046, 0.058)), (0.028, 0.016, 0.028), tr, bevel=0.004)
+        sc.tag = "chest"
         hard.box(t @ V((0, 0.06, 0.17)), (0.084, 0.034, 0.09), tr, bevel=0.01)
+        sc.tag = "pelvis"
         hard.cylinder(t @ V((0.066, 0.034, 0.05)), t @ V((0.066, 0.034, 0.005)), 0.018, rnd=0.006)
+        # Props added after this (rifles, binoculars …) go to whichever hand holds them.
+        sc.tag = None
         return j
 
 
@@ -693,6 +720,9 @@ POSES = {
     },
 }
 
+#: Sculpt and joints of each built figure, for skinning (keyed by object name).
+RIGS = {}
+
 RANKS = ["marskal", "general", "oberst", "major", "kaptajn", "loejtnant", "sergent", "minoer", "spejder", "spion", "mine", "flag"]
 
 
@@ -731,15 +761,44 @@ def build_rank(rank):
     pose = POSES[rank]
     s = Soldier(pose["pose"])
     j = s.build(soft, hard)
-    for fn in pose.get("props", []):
-        fn(hard, j, s)
-    for fn in pose.get("soft", []):
-        fn(soft, j, s)
+    for g, fn in enumerate(pose.get("props", []) + pose.get("soft", [])):
+        n0 = len(sculpt.prims)
+        fn(soft if fn in pose.get("soft", []) else hard, j, s)
+        for prim in sculpt.prims[n0:]:
+            prim.group = g
     cx = (j["r_ankle"].x + j["l_ankle"].x) / 2
     cy = (j["r_ankle"].y + j["l_ankle"].y) / 2
     w, d = pose.get("base", (0.46, 0.36))
+    sculpt.tag = "root"
     base_plate(hard, w, d, cx=cx * 0.5, cy=cy * 0.6 - 0.02 + pose.get("base_dy", 0.0))
-    return sculpt.mesh(VOXEL)
+    sculpt.tag = None
+    # Body, each arm and each prop are meshed apart, so when he comes alive an arm can leave
+    # his side (or a rifle his chest) without the plastic stretching between them. They just
+    # touch, plugged together like an action figure's parts.
+    def arm_of(side):
+        return lambda p: p.tag in ("upperarm_" + side, "forearm_" + side, "hand_" + side)
+
+    islands = [("body", lambda p: p.tag is not None and not (arm_of("r")(p) or arm_of("l")(p)))]
+    islands += [("arm_" + side, arm_of(side)) for side in ("r", "l")]
+    for g in sorted({p.group for p in sculpt.prims if p.tag is None and p.group is not None}):
+        islands.append((f"prop_{g}", lambda p, g=g: p.tag is None and p.group == g))
+    parts = []
+    for name, only in islands:
+        if not any(only(p) and p.op != "sub" for p in sculpt.prims):
+            continue
+        part = sculpt.mesh(VOXEL, only=only)
+        mark = part.vertex_groups.new(name="island_" + name)
+        mark.add(list(range(len(part.data.vertices))), 1.0, "REPLACE")
+        parts.append(part)
+    obj = parts[0]
+    if len(parts) > 1:
+        select_only(obj)
+        for part in parts[1:]:
+            part.select_set(True)
+        bpy.ops.object.join()
+    obj["rig"] = True
+    RIGS[obj.name] = (sculpt, j)
+    return obj
 
 
 # ---------------------------------------------------------------- finishing: smooth, seam, bake
@@ -848,8 +907,166 @@ def bake_vertex_data(obj):
         d.color = (ao[i], max(0.0, min(1.0, 0.5 + curv[i] * 6.0)), 1.0, 1.0)
 
 
-def export(obj, path):
+# ---------------------------------------------------------------- skeleton and skin weights
+
+BONES = [
+    "root", "pelvis", "spine", "chest", "head",
+    "upperarm_r", "forearm_r", "hand_r", "upperarm_l", "forearm_l", "hand_l",
+    "thigh_r", "shin_r", "thigh_l", "shin_l",
+]
+#: Unweighted end markers, so the game knows where the ankles are (bone tails aren't exported).
+MARKERS = ["foot_r", "foot_l"]
+#: How softly the skin blends between neighbouring parts (the soft plastic's fillets).
+SKIN_BLEND = 0.008
+
+
+def bone_spans(j):
+    """Head, tail and parent of each bone, from the solved joints (figure space)."""
+    def ext(a, b, length):
+        return b + (b - a).normalized() * length
+    spans = {
+        "root": (V((0, 0, 0)), V((0, 0, 0.06)), None),
+        "pelvis": (j["pelvis"], j["waist"], "root"),
+        "spine": (j["waist"], j["chest"], "pelvis"),
+        "chest": (j["chest"], j["neck"], "spine"),
+        "head": (j["neck"], ext(j["neck"], j["head"], 0.05), "chest"),
+    }
+    for s in ("r", "l"):
+        spans["upperarm_" + s] = (j[s + "_shoulder"], j[s + "_elbow"], "chest")
+        spans["forearm_" + s] = (j[s + "_elbow"], j[s + "_hand"], "upperarm_" + s)
+        spans["hand_" + s] = (j[s + "_hand"], ext(j[s + "_elbow"], j[s + "_hand"], 0.04), "forearm_" + s)
+        spans["thigh_" + s] = (j[s + "_hip"], j[s + "_knee"], "pelvis")
+        spans["shin_" + s] = (j[s + "_knee"], j[s + "_ankle"], "thigh_" + s)
+        spans["foot_" + s] = (j[s + "_ankle"], j[s + "_ankle"] + V((0, -0.04, -0.01)), "shin_" + s)
+    return spans
+
+
+def make_armature(j):
+    data = bpy.data.armatures.new("skeleton")
+    arm = link(bpy.data.objects.new("skeleton", data))
+    select_only(arm)
+    bpy.ops.object.mode_set(mode="EDIT")
+    spans = bone_spans(j)
+    for name in BONES + MARKERS:
+        head, tail, _ = spans[name]
+        b = data.edit_bones.new(name)
+        b.head, b.tail = head, tail
+    for name in BONES + MARKERS:
+        parent = spans[name][2]
+        if parent:
+            data.edit_bones[name].parent = data.edit_bones[parent]
+    bpy.ops.object.mode_set(mode="OBJECT")
+    return arm
+
+
+def _segment_distance(p, a, b):
+    ab = b - a
+    t = np.clip(((p - a) @ ab) / max(ab @ ab, 1e-12), 0, 1)
+    return np.linalg.norm(p - (a + t[:, None] * ab), axis=1)
+
+
+def _box_distance(prim, point):
+    q = V((min(max(point.x, prim.lo.x), prim.hi.x), min(max(point.y, prim.lo.y), prim.hi.y), min(max(point.z, prim.lo.z), prim.hi.z)))
+    return (q - point).length
+
+
+def prop_bones(sculpt, j, spans):
+    """Which bone each prop (group of untagged parts) follows: the hand gripping it (the right
+    hand if both do: the left then just holds on), or else the nearest bone. Also says whether
+    one prop is held in both hands."""
+    groups = {}
+    for prim in sculpt.prims:
+        if prim.tag is None and prim.op != "sub":
+            groups.setdefault(prim.group, []).append(prim)
+    bones, two_handed = {}, False
+    for g, prims in groups.items():
+        grip = {s: min(_box_distance(p, j[s + "_hand"]) for p in prims) for s in ("r", "l")}
+        if grip["r"] < 0.035 and grip["l"] < 0.035:
+            bones[g], two_handed = "hand_r", True
+        elif min(grip.values()) < 0.035:
+            bones[g] = "hand_" + min(grip, key=grip.get)
+        else:
+            c = sum(((p.lo + p.hi) / 2 for p in prims), V((0, 0, 0))) / len(prims)
+            c = np.array([c], dtype=np.float64)
+            dists = {
+                n: _segment_distance(c, np.array(a), np.array(b))[0]
+                for n, (a, b, _) in spans.items()
+                if n in BONES and n != "root"
+            }
+            bones[g] = min(dists, key=dists.get)
+    return bones, two_handed
+
+
+ARM_BONES = {side: ["upperarm_" + side, "forearm_" + side, "hand_" + side] for side in ("r", "l")}
+
+
+def islands_of(obj):
+    """Which mesh island (body, arm_r, arm_l, prop_<n>) each vertex came from."""
+    names = {g.index: g.name[len("island_"):] for g in obj.vertex_groups if g.name.startswith("island_")}
+    out = [None] * len(obj.data.vertices)
+    for v in obj.data.vertices:
+        best = 0.0
+        for g in v.groups:
+            if g.group in names and g.weight > best:
+                best, out[v.index] = g.weight, names[g.group]
+    for g in [g for g in obj.vertex_groups if g.name.startswith("island_")]:
+        obj.vertex_groups.remove(g)
+    return out
+
+
+def skin(obj, arm, sculpt, j):
+    """Vertex weights from the tagged distance fields. Within the body (and within each arm)
+    a vertex follows the part(s) it's made of, blending where the soft plastic melts between
+    them; each arm only follows its own bones, the body never follows an arm's; props are
+    rigid, every vertex following the one hand (or bone) that holds the prop."""
+    spans = bone_spans(j)
+    me = obj.data
+    P = np.array([v.co[:] for v in me.vertices], dtype=np.float64)
+    X, Y, Z = P[:, 0], P[:, 1], P[:, 2]
+    D = {b: np.full(len(P), np.inf) for b in BONES}
+    for prim in sculpt.prims:
+        if prim.op != "sub" and prim.tag:
+            D[prim.tag] = np.minimum(D[prim.tag], np.asarray(prim.fn(X, Y, Z), dtype=np.float64).reshape(-1))
+    stack = np.stack([D[b] for b in BONES])
+    island = np.array([i or "body" for i in islands_of(obj)])
+    arm_rows = {side: [BONES.index(b) for b in ARM_BONES[side]] for side in ARM_BONES}
+    all_arm = arm_rows["r"] + arm_rows["l"]
+    body = island == "body"
+    stack[np.ix_(all_arm, np.nonzero(body)[0])] = np.inf
+    for side in ("r", "l"):
+        cols = np.nonzero(island == "arm_" + side)[0]
+        others = [r for r in range(len(BONES)) if r not in arm_rows[side]]
+        stack[np.ix_(others, cols)] = np.inf
+    best = stack.min(axis=0)
+    rel = stack - best
+    W = np.where(rel < SKIN_BLEND * 4, np.exp(-rel / SKIN_BLEND), 0.0)
+    bones, two_handed = prop_bones(sculpt, j, spans)
+    for g, bone in bones.items():
+        cols = np.nonzero(island == f"prop_{g}")[0]
+        W[:, cols] = 0.0
+        W[BONES.index(bone), cols] = 1.0
+    # A vertex nothing claimed (shouldn't happen): leave it with the root.
+    lost = W.sum(axis=0) == 0
+    W[BONES.index("root"), lost] = 1.0
+    # At most four bones per vertex (glTF), renormalised.
+    cut = np.sort(W, axis=0)[-4]
+    W = np.where(W >= cut, W, 0.0)
+    W /= W.sum(axis=0, keepdims=True)
+    groups = {b: obj.vertex_groups.new(name=b) for b in BONES}
+    for bi, b in enumerate(BONES):
+        for i in np.nonzero(W[bi] > 1e-3)[0]:
+            groups[b].add([int(i)], float(W[bi, i]), "REPLACE")
+    obj.parent = arm
+    mod = obj.modifiers.new("skeleton", "ARMATURE")
+    mod.object = arm
+    # Tell the game when one prop is held in both hands (glTF extras on the skeleton).
+    arm["two_handed"] = bool(two_handed)
+
+
+def export(obj, path, extra=()):
     select_only(obj)
+    for o in extra:
+        o.select_set(True)
     kwargs = dict(
         filepath=str(path),
         export_format="GLB",
@@ -859,6 +1076,7 @@ def export(obj, path):
         export_normals=True,
         export_texcoords=False,
         export_materials="NONE",
+        export_extras=True,
     )
     try:
         bpy.ops.export_scene.gltf(**kwargs, export_vertex_color="ACTIVE")
@@ -960,16 +1178,32 @@ def main():
             continue
         print(f"[models] {rank}", flush=True)
         reset()
+        RIGS.clear()
         fig = finish(build_rank(rank))
+        fig_name = fig.name
         lod0 = decimate(fig, LOD0_TRIS, rank)
         lod1 = decimate(fig, LOD1_TRIS, rank + "-lod1")
         bpy.data.objects.remove(fig)
         for o in (lod0, lod1):
             bake_vertex_data(o)
-        export(lod0, out / f"{rank}.glb")
-        export(lod1, out / f"{rank}-lod1.glb")
+        rig = RIGS.get(fig_name)
+        extra = ()
+        if rig:
+            # The figure can come alive: a skeleton to pose, the plastic skinned to it.
+            arm = make_armature(rig[1])
+            for o in (lod0, lod1):
+                skin(o, arm, *rig)
+            extra = (arm,)
+        export(lod0, out / f"{rank}.glb", extra)
+        export(lod1, out / f"{rank}-lod1.glb", extra)
         tris = sum(len(p.vertices) - 2 for p in lod0.data.polygons)
-        manifest[rank] = {"hash": key, "file": f"{rank}.glb", "lod1": f"{rank}-lod1.glb", "tris": tris}
+        manifest[rank] = {
+            "hash": key,
+            "file": f"{rank}.glb",
+            "lod1": f"{rank}-lod1.glb",
+            "tris": tris,
+            "bones": BONES if rig else None,
+        }
         print(f"[models]   {tris} tris", flush=True)
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         if args.preview:

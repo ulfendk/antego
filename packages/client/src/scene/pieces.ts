@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RANK_ORDER, type Rank, type Team } from '@antego/shared';
+import { Alive } from './alive.js';
 import { plasticMaterial } from './plastic.js';
 import { TEAM_COLORS, badge, emblem, radial } from './textures.js';
 
@@ -10,6 +11,8 @@ export interface Model {
   geo: THREE.BufferGeometry;
   /** Meshopt stores quantized positions; the node transform scales them back to board units. */
   matrix: THREE.Matrix4;
+  /** Figures that can come alive: the skinned scene (clone it to pose one). */
+  skinned?: THREE.Object3D;
 }
 
 interface ModelSet {
@@ -37,6 +40,25 @@ export async function loadModel(file: string): Promise<Model> {
   if (col) {
     g.setAttribute('aoCurv', col);
     g.deleteAttribute('color');
+  }
+  if ((m as THREE.SkinnedMesh).isSkinnedMesh) {
+    // Standing still, a figure is a plain toy: bake the rest pose into ordinary geometry.
+    // (Quantized skinned meshes keep their scale in the skin, not the node, so bake it.)
+    const sm = m as THREE.SkinnedMesh;
+    sm.skeleton.update();
+    const pos = g.getAttribute('position');
+    const baked = new Float32Array(pos.count * 3);
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      sm.applyBoneTransform(i, v.fromBufferAttribute(pos, i));
+      baked.set([v.x, v.y, v.z], i * 3);
+    }
+    const toy = new THREE.BufferGeometry();
+    toy.setAttribute('position', new THREE.BufferAttribute(baked, 3));
+    toy.setAttribute('aoCurv', g.getAttribute('aoCurv'));
+    toy.setIndex(g.getIndex());
+    toy.computeVertexNormals();
+    return { geo: toy, matrix: sm.matrixWorld.clone(), skinned: gltf.scene };
   }
   return { geo: g, matrix: m.matrixWorld.clone() };
 }
@@ -169,13 +191,47 @@ export class PieceObject extends THREE.Group {
   }
 
   /** Show the soldier for a known rank, or the army's hidden card for null. */
+  private toy: THREE.Object3D | null = null;
+  private model: Model | null = null;
+  private alive: Alive | null = null;
+
+  /**
+   * The toy comes to life: his posable twin takes his place (same plastic, same pose to
+   * start with). Null if this figure can't (mines, flags, hidden tiles, old models).
+   */
+  comeAlive(): Alive | null {
+    if (this.alive) return this.alive;
+    if (!this.model?.skinned || !this.toy) return null;
+    const a = new Alive(this.model, this.kit.plastic[this.team]);
+    if (!a.ok) {
+      a.dispose();
+      return null;
+    }
+    this.toy.visible = false;
+    this.rig.add(a.root);
+    this.alive = a;
+    return a;
+  }
+
+  /** …and freezes back into a plastic toy. */
+  backToToy() {
+    if (!this.alive) return;
+    this.rig.remove(this.alive.root);
+    this.alive.dispose();
+    this.alive = null;
+    if (this.toy) this.toy.visible = true;
+  }
+
   setRank(rank: Rank | null, showBadge: boolean) {
     if (rank === this.rank && this.rig.children.length) {
       this.setBadge(showBadge);
       return;
     }
     this.rank = rank;
+    this.backToToy();
     this.rig.clear();
+    this.toy = null;
+    this.model = null;
     this.badgeSprite = null;
     if (rank) {
       const set = this.kit.models.get(rank)!;
@@ -192,6 +248,8 @@ export class PieceObject extends THREE.Group {
       if (this.kit.lod0Distance > 0) lod.addLevel(hi, 0);
       lod.addLevel(lo, this.kit.lod0Distance);
       this.rig.add(lod);
+      this.toy = lod;
+      this.model = set.lod0;
     } else {
       // Rank unknown: the army's plastic tile, embossed emblem on both faces.
       const m = this.kit.tile(this.team);

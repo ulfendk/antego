@@ -10,6 +10,7 @@ import {
   type Team,
 } from '@antego/shared';
 import { BOARD_TOP, squareAt, squareToWorld } from './board.js';
+import { MOVES, type Move } from './alive.js';
 import { FACING, PieceKit, PieceObject } from './pieces.js';
 import { sfx } from '../audio/sfx.js';
 import { toyBoxSlot } from './props.js';
@@ -279,8 +280,8 @@ export class Presenter {
         const gap = att.position.distanceTo(def.position);
         const stop = att.position.clone().lerp(def.position, Math.max(0, (gap - FACE_OFF) / gap));
         if (gap > FACE_OFF + 0.05) await this.hopFrom(att, att.position.clone(), stop);
-        await this.taunt(att, e.attackerRank);
-        await this.taunt(def, e.defenderRank);
+        await this.taunt(att, e.attackerRank, def);
+        await this.taunt(def, e.defenderRank, att);
         sfx.play('clash');
         await this.hooks.onBattle?.({
           attackerTeam: att.team,
@@ -399,7 +400,8 @@ export class Presenter {
    * stomp, puffing up and leaning back, or a spin on the spot. Mines and flags can't jump;
    * they just wobble.
    */
-  private async taunt(obj: PieceObject, rank: Rank) {
+  private async taunt(obj: PieceObject, rank: Rank, enemy: PieceObject) {
+    if (await this.comeAlive(obj, rank, enemy)) return;
     const rig = obj.rig;
     const reset = () => {
       tipOnEdge(rig, 0);
@@ -463,6 +465,44 @@ export class Presenter {
     reset();
   }
 
+  /**
+   * The toy comes to life (Toy Story style, still green plastic): a little shiver, then a move
+   * that suits him – aiming his rifle, shaking a fist, a jump, a salute – and he freezes back
+   * into a toy. False if this figure can't (then taunt() does it the stiff way).
+   */
+  private async comeAlive(obj: PieceObject, rank: Rank, enemy: PieceObject) {
+    const alive = obj.comeAlive();
+    if (!alive) return false;
+    const moves = ALIVE_MOVES[rank] ?? MOVES;
+    const move = moves[Math.floor(Math.random() * moves.length)]!;
+    const dur = 1.5;
+    const target = enemy.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.5, 0));
+    sfx.play('tick');
+    let beat = -1;
+    await tween(
+      dur * 1000,
+      (k) => {
+        const t = k * dur;
+        obj.rig.position.y = alive.pose(move, t, dur, target);
+        // A shiver as he wakes up.
+        obj.rig.scale.setScalar(1 + Math.max(0, 0.04 * Math.sin(Math.min(1, t / 0.25) * Math.PI)));
+        const b = Math.floor(t * 4);
+        if (b !== beat) {
+          beat = b;
+          if (move === 'stomp' && b % 2 === 0 && t < dur - 0.3) sfx.play('tap');
+          if (move === 'jump' && Math.abs(t / dur - 0.32) < 0.13) sfx.play('hop');
+        }
+      },
+      ease.linear,
+    );
+    obj.rig.position.y = 0;
+    obj.rig.scale.setScalar(1);
+    // …and stiff again: back to being a plastic toy.
+    obj.backToToy();
+    sfx.play('tick');
+    return true;
+  }
+
   private async reveal(obj: PieceObject, rank: Rank) {
     if (obj.rank === rank) return;
     // The tile tips over like a flipped Stratego piece, and the soldier pops up.
@@ -510,6 +550,20 @@ export class Presenter {
 
 /** Base plate half-width in the soldier's own frame (model units): the edge he rocks onto. */
 const PLATE_HALF = 0.21;
+/** What each rank likes to do when he comes alive to square up. */
+const ALIVE_MOVES: Partial<Record<Rank, Move[]>> = {
+  marskal: ['salute', 'flex', 'fist'],
+  general: ['fist', 'salute', 'flex'],
+  oberst: ['salute', 'flex', 'fist'],
+  major: ['salute', 'fist', 'stomp'],
+  kaptajn: ['aim', 'fist', 'stomp'],
+  loejtnant: ['aim', 'fist', 'beckon'],
+  sergent: ['aim', 'fist', 'stomp'],
+  minoer: ['fist', 'beckon', 'stomp'],
+  spejder: ['jump', 'beckon', 'jump'],
+  spion: ['beckon', 'flex', 'jump'],
+};
+
 /** Centre to centre, two soldiers squaring up (their bases are ~0.6 wide). */
 const FACE_OFF = 0.95;
 
