@@ -1,0 +1,74 @@
+{
+  "sergent": {
+    "hash": "da8ce24df2a7-sergent",
+    "file": "sergent.glb",
+    "lod1": "sergent-lod1.glb",
+    "tris": 30000
+  },
+  "marskal": {
+    "hash": "da8ce24df2a7-marskal",
+    "file": "marskal.glb",
+    "lod1": "marskal-lod1.glb",
+    "tris": 29999
+  },
+  "general": {
+    "hash": "da8ce24df2a7-general",
+    "file": "general.glb",
+    "lod1": "general-lod1.glb",
+    "tris": 30000
+  },
+  "oberst": {
+    "hash": "da8ce24df2a7-oberst",
+    "file": "oberst.glb",
+    "lod1": "oberst-lod1.glb",
+    "tris": 30000
+  },
+  "major": {
+    "hash": "da8ce24df2a7-major",
+    "file": "major.glb",
+    "lod1": "major-lod1.glb",
+    "tris": 30000
+  },
+  "kaptajn": {
+    "hash": "da8ce24df2a7-kaptajn",
+    "file": "kaptajn.glb",
+    "lod1": "kaptajn-lod1.glb",
+    "tris": 30000
+  },
+  "loejtnant": {
+    "hash": "da8ce24df2a7-loejtnant",
+    "file": "loejtnant.glb",
+    "lod1": "loejtnant-lod1.glb",
+    "tris": 30000
+  },
+  "minoer": {
+    "hash": "da8ce24df2a7-minoer",
+    "file": "minoer.glb",
+    "lod1": "minoer-lod1.glb",
+    "tris": 30000
+  },
+  "spejder": {
+    "hash": "da8ce24df2a7-spejder",
+    "file": "spejder.glb",
+    "lod1": "spejder-lod1.glb",
+    "tris": 30000
+  },
+  "spion": {
+    "hash": "da8ce24df2a7-spion",
+    "file": "spion.glb",
+    "lod1": "spion-lod1.glb",
+    "tris": 30000
+  },
+  "mine": {
+    "hash": "da8ce24df2a7-mine",
+    "file": "mine.glb",
+    "lod1": "mine-lod1.glb",
+    "tris": 30000
+  },
+  "flag": {
+    "hash": "da8ce24df2a7-flag",
+    "file": "flag.glb",
+    "lod1": "flag-lod1.glb",
+    "tris": 30000
+  }
+}
