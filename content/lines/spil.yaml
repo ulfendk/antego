@@ -1,0 +1,38 @@
+id: spil
+lines:
+  - id: tur_groen
+    speaker: groen
+    text: Grøn hær – det er jeres tur!
+  - id: tur_brun
+    speaker: brun
+    text: Brun hær – det er jeres tur!
+  - id: din_tur
+    speaker: sergent
+    text: Din tur, soldat!
+  - id: computer_tur
+    speaker: fortaeller
+    text: Computeren tænker…
+  - id: giv_groen
+    speaker: fortaeller
+    text: Giv skærmen til den grønne hær. Ingen kigger!
+  - id: giv_brun
+    speaker: fortaeller
+    text: Giv skærmen til den brune hær. Ingen kigger!
+  - id: jeg_er_klar
+    speaker: fortaeller
+    text: Jeg er klar
+  - id: vaelg_soldat
+    speaker: fortaeller
+    text: Tryk på en af dine soldater.
+  - id: kan_ikke_flytte
+    speaker: fortaeller
+    text: Den soldat kan ikke flytte sig.
+  - id: opgiv
+    speaker: fortaeller
+    text: Giv op
+  - id: menu
+    speaker: fortaeller
+    text: Menu
+  - id: fortsaet
+    speaker: fortaeller
+    text: Fortsæt

@@ -1,0 +1,23 @@
+id: kamp
+lines:
+  - id: angriber
+    speaker: sergent
+    text: angriber
+  - id: vinder
+    speaker: sergent
+    text: vinder!
+  - id: begge
+    speaker: sergent
+    text: Lige stærke! Begge soldater falder.
+  - id: mine
+    speaker: sergent
+    text: Bum! Det var en mine!
+  - id: desarmeret
+    speaker: sergent
+    text: Minøren desarmerer minen!
+  - id: spion
+    speaker: sergent
+    text: Spionen overlister marskallen!
+  - id: flag
+    speaker: sergent
+    text: Flaget er erobret!

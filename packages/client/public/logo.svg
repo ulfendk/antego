@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#4a6b2a"/>
+  <circle cx="256" cy="256" r="196" fill="#5d8235"/>
+  <!-- Army man silhouette: helmet, aiming rifle, on a base -->
+  <g fill="#e9e2c4">
+    <path d="M206 132c0-34 26-58 58-58s58 24 58 58v6h16c6 0 8 8 2 11l-24 12h-104l-24-12c-6-3-4-11 2-11h16z"/>
+    <circle cx="262" cy="178" r="30"/>
+    <path d="M226 206h72l18 92-10 6 8 86h-38l-12-78-12 78h-38l8-86-10-6z"/>
+    <path d="M300 222l94-22 4 14-88 30z"/>
+    <path d="M384 196l40-8 2 10-40 8z"/>
+    <rect x="160" y="392" width="200" height="22" rx="11"/>
+  </g>
+</svg>

@@ -1,0 +1,77 @@
+# All text the game shows lives in content/lines/*.yaml, so every line can be read aloud
+# (pre-rendered with Røst, see tools/voice). "say" overrides the spoken version.
+id: menu
+lines:
+  - id: titel
+    speaker: fortaeller
+    text: Antego
+    say: Antego! Myresoldaterne gør klar til kamp.
+  - id: spil_computer
+    speaker: fortaeller
+    text: Spil mod computeren
+  - id: spil_to
+    speaker: fortaeller
+    text: To spillere på én skærm
+  - id: spil_online
+    speaker: fortaeller
+    text: Spil online
+  - id: svaerhed
+    speaker: fortaeller
+    text: Hvor klog skal computeren være?
+  - id: let
+    speaker: fortaeller
+    text: Let
+  - id: mellem
+    speaker: fortaeller
+    text: Mellem
+  - id: svaer
+    speaker: fortaeller
+    text: Svær
+  - id: minispil
+    speaker: fortaeller
+    text: Hvornår skal soldaterne dyste i minispil?
+  - id: altid
+    speaker: fortaeller
+    text: Altid
+  - id: taette
+    speaker: fortaeller
+    text: Ved tætte kampe
+  - id: aldrig
+    speaker: fortaeller
+    text: Aldrig
+  - id: start
+    speaker: sergent
+    text: Start!
+  - id: tilbage
+    speaker: fortaeller
+    text: Tilbage
+  - id: grafik
+    speaker: fortaeller
+    text: Grafik
+  - id: grafik_hoej
+    speaker: fortaeller
+    text: Flot
+  - id: grafik_mellem
+    speaker: fortaeller
+    text: Normal
+  - id: grafik_lav
+    speaker: fortaeller
+    text: Hurtig
+  - id: lyd
+    speaker: fortaeller
+    text: Oplæsning
+  - id: til
+    speaker: fortaeller
+    text: Til
+  - id: fra
+    speaker: fortaeller
+    text: Fra
+  - id: indstillinger
+    speaker: fortaeller
+    text: Indstillinger
+  - id: opdaterer
+    speaker: fortaeller
+    text: Spillet bliver opdateret…
+  - id: ny_version
+    speaker: fortaeller
+    text: Der er en ny version af spillet. Den kommer, når I holder pause.

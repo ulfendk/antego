@@ -1,0 +1,11 @@
+# Portainer → Stacks → Add stack → Web editor: paste this file.
+# Put nginx (TLS) in front of port 2567 — see docs/deploy.md.
+services:
+  antego:
+    image: ghcr.io/ulfendk/antego:latest
+    container_name: antego
+    ports:
+      - '2567:2567'
+    environment:
+      - TZ=Europe/Copenhagen
+    restart: unless-stopped

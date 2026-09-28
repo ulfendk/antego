@@ -1,0 +1,26 @@
+id: slut
+lines:
+  - id: groen_vinder
+    speaker: groen
+    text: Den grønne hær vinder!
+  - id: brun_vinder
+    speaker: brun
+    text: Den brune hær vinder!
+  - id: du_vandt
+    speaker: sergent
+    text: Du vandt! Godt kæmpet, soldat!
+  - id: du_tabte
+    speaker: sergent
+    text: Computeren vandt denne gang. Prøv igen!
+  - id: ingen_traek
+    speaker: fortaeller
+    text: Modstanderen kunne ikke flytte flere soldater.
+  - id: opgivet
+    speaker: fortaeller
+    text: Modstanderen gav op.
+  - id: igen
+    speaker: fortaeller
+    text: Spil igen
+  - id: menu
+    speaker: fortaeller
+    text: Til menuen

@@ -1,0 +1,9 @@
+# Local test of the production image: docker compose up --build → http://localhost:2567
+services:
+  antego:
+    build:
+      context: .
+      args:
+        APP_VERSION: local
+    ports:
+      - '2567:2567'

@@ -1,0 +1,348 @@
+:root {
+  --olive: #4a6b2a;
+  --olive-dark: #2f4219;
+  --khaki: #e9e2c4;
+  --tan: #b08a52;
+  --ink: #1f2612;
+  --paper: #f3ecd2;
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 12px 30px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1f1810;
+  font-family: Nunito, system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui > * > * {
+  pointer-events: auto;
+}
+
+.screen-layer,
+.hud-layer,
+.banner-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.hud-layer {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.banner-layer {
+  pointer-events: none;
+}
+
+.banner-layer > * {
+  pointer-events: none !important;
+}
+
+h1,
+h2,
+.title,
+.btn,
+.turn,
+.battle {
+  font-family: 'Black Ops One', Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.panel {
+  background: var(--paper);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 6px 6px;
+  border: 5px solid var(--olive-dark);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: min(560px, 100%);
+  text-align: center;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: clamp(34px, 8vw, 60px);
+  color: var(--olive-dark);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: clamp(22px, 5vw, 32px);
+  color: var(--olive-dark);
+}
+
+.menu .logo {
+  width: 120px;
+  height: 120px;
+  margin-top: -80px;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4));
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn {
+  appearance: none;
+  border: 4px solid var(--olive-dark);
+  background: var(--olive);
+  color: var(--khaki);
+  border-radius: 16px;
+  min-height: 60px;
+  padding: 10px 18px;
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 5px 0 var(--olive-dark);
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--olive-dark);
+}
+
+.btn.big {
+  font-size: 24px;
+  min-width: min(360px, 80vw);
+  min-height: 70px;
+}
+
+.row .btn.big {
+  min-width: 120px;
+}
+
+.btn.small {
+  background: var(--khaki);
+  color: var(--olive-dark);
+  font-size: 18px;
+}
+
+.btn.go {
+  background: #d9832b;
+  border-color: #7a3f10;
+  box-shadow: 0 5px 0 #7a3f10;
+}
+
+.btn.on {
+  outline: 4px solid #d9832b;
+}
+
+.btn .icon {
+  font-size: 1.2em;
+  font-family: system-ui, sans-serif;
+}
+
+.icon-only {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  font-size: 28px;
+  font-family: system-ui, sans-serif;
+}
+
+.setup-bar {
+  align-self: flex-end;
+  background: rgba(243, 236, 210, 0.95);
+  border: 4px solid var(--olive-dark);
+  border-radius: 20px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  max-width: 100%;
+}
+
+.setup-bar h2 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--olive-dark);
+}
+
+.setup-bar .hint {
+  margin: 0;
+  font-size: 16px;
+}
+
+.setup-bar .btn {
+  min-height: 52px;
+  font-size: 18px;
+}
+
+.turn {
+  background: var(--paper);
+  border: 4px solid var(--olive-dark);
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-size: clamp(18px, 4vw, 26px);
+  box-shadow: var(--shadow);
+}
+
+.turn.groen {
+  background: #6f9a43;
+  color: #f6f1dc;
+}
+
+.turn.brun {
+  background: #c9a36a;
+  color: #2b1d0d;
+  border-color: #5c3f1c;
+}
+
+.handover {
+  gap: 24px;
+}
+
+.battle {
+  background: rgba(20, 24, 12, 0.85);
+  color: #fff4d0;
+  border: 4px solid #d9832b;
+  border-radius: 20px;
+  padding: 16px 28px;
+  font-size: clamp(24px, 6vw, 44px);
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: center;
+  animation: pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+  box-shadow: var(--shadow);
+}
+
+.battle .verb {
+  color: #f3b35c;
+  font-size: 0.75em;
+}
+
+.gameover .trophy {
+  font-size: 72px;
+  margin-top: -60px;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: radial-gradient(circle at 50% 40%, #3b4a22, #151a0b);
+}
+
+.loading img {
+  width: 140px;
+}
+
+.progress {
+  width: min(320px, 70vw);
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.progress .bar {
+  width: 0;
+  height: 100%;
+  background: #d9832b;
+  transition: width 0.2s;
+}
+
+.toasts {
+  position: fixed;
+  top: max(84px, calc(env(safe-area-inset-top) + 76px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+  width: min(520px, calc(100vw - 32px));
+}
+
+.toast {
+  background: var(--paper);
+  border: 3px solid var(--olive-dark);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-size: 17px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: opacity 0.4s;
+}
+
+.toast.out {
+  opacity: 0;
+}
+
+@media (max-width: 600px) {
+  .btn.big {
+    font-size: 20px;
+  }
+  .setup-bar .btn {
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+}
+
+.version {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.55;
+}

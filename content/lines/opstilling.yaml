@@ -1,0 +1,23 @@
+id: opstilling
+lines:
+  - id: titel
+    speaker: sergent
+    text: Stil dine soldater op!
+  - id: hjaelp
+    speaker: fortaeller
+    text: Vælg en opstilling – eller tryk på to soldater for at bytte dem.
+  - id: forsvar
+    speaker: fortaeller
+    text: Forsvar
+  - id: angreb
+    speaker: fortaeller
+    text: Angreb
+  - id: snigende
+    speaker: fortaeller
+    text: Snigende
+  - id: bland
+    speaker: fortaeller
+    text: Bland
+  - id: klar
+    speaker: sergent
+    text: Klar!

@@ -1,0 +1,50 @@
+id: rang
+lines:
+  - { id: marskal, speaker: sergent, text: Marskal }
+  - { id: general, speaker: sergent, text: General }
+  - { id: oberst, speaker: sergent, text: Oberst }
+  - { id: major, speaker: sergent, text: Major }
+  - { id: kaptajn, speaker: sergent, text: Kaptajn }
+  - { id: loejtnant, speaker: sergent, text: Løjtnant }
+  - { id: sergent, speaker: sergent, text: Sergent }
+  - { id: minoer, speaker: sergent, text: Minør }
+  - { id: spejder, speaker: sergent, text: Spejder }
+  - { id: spion, speaker: sergent, text: Spion }
+  - { id: mine, speaker: sergent, text: Mine }
+  - { id: flag, speaker: sergent, text: Flag }
+  - id: marskal_info
+    speaker: fortaeller
+    text: Marskallen er den stærkeste soldat. Men pas på spionen!
+  - id: general_info
+    speaker: fortaeller
+    text: Generalen er næsten lige så stærk som marskallen.
+  - id: oberst_info
+    speaker: fortaeller
+    text: Obersten er en stærk soldat.
+  - id: major_info
+    speaker: fortaeller
+    text: Majoren er god til at slå de svagere soldater.
+  - id: kaptajn_info
+    speaker: fortaeller
+    text: Kaptajnen er en solid soldat midt i hæren.
+  - id: loejtnant_info
+    speaker: fortaeller
+    text: Løjtnanten er modig og hurtig på aftrækkeren.
+  - id: sergent_info
+    speaker: fortaeller
+    text: Sergenten holder sammen på tropperne.
+  - id: minoer_info
+    speaker: fortaeller
+    text: Minøren er den eneste, der kan desarmere miner.
+  - id: spejder_info
+    speaker: fortaeller
+    text: Spejderen kan løbe mange felter på én gang.
+  - id: spion_info
+    speaker: fortaeller
+    text: Spionen er svag – men han kan slå marskallen, hvis han angriber først.
+  - id: mine_info
+    speaker: fortaeller
+    text: Minen kan ikke flytte sig. Den, der går på den, falder – undtagen minøren.
+  - id: flag_info
+    speaker: fortaeller
+    text: Pas godt på flaget! Hvis fjenden tager det, har I tabt.
