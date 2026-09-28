@@ -72,6 +72,9 @@ lines:
   - id: indstillinger
     speaker: fortaeller
     text: Indstillinger
+  - id: tutorial
+    speaker: fortaeller
+    text: Sådan spiller du
   - id: opdaterer
     speaker: fortaeller
     text: Spillet bliver opdateret…

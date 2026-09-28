@@ -23,7 +23,7 @@ export type Listener = (view: GameView, events: GameEvent[]) => void;
 
 /** What the app talks to, whether the game runs on this device or on the server. */
 export interface Controller {
-  readonly mode: 'ai' | 'hotseat' | 'online';
+  readonly mode: 'ai' | 'hotseat' | 'online' | 'tutorial';
   subscribe(fn: Listener): void;
   /** The latest view of the game for whoever is looking at this screen. */
   view(): GameView;

@@ -18,6 +18,8 @@ import {
 import { renderSVG } from 'uqr';
 import { LocalController, type Controller } from './game/controller.js';
 import { OnlineController, OnlineError } from './net/online.js';
+import { TutorialController } from './game/tutorial.js';
+import { Tutorial } from './ui/tutorial.js';
 import { runMinigame } from './minigames/runner.js';
 import type { LineId } from './generated/lines.js';
 import { updater } from './pwa/updater.js';
@@ -42,6 +44,7 @@ interface SetupState {
 export class App {
   private controller: Controller | null = null;
   private opponentHere = false;
+  private tutorial: Tutorial | null = null;
   private view: GameView | null = null;
   private setupState: SetupState | null = null;
   private selected: string | null = null;
@@ -79,6 +82,7 @@ export class App {
         button('menu.spil_computer', () => this.chooseDifficulty(), 'big', '🤖'),
         button('menu.spil_to', () => this.chooseMinigames('hotseat'), 'big', '👫'),
         button('menu.spil_online', () => this.onlineMenu(), 'big', '🌍'),
+        button('menu.tutorial', () => this.startTutorial(), 'small', '📖'),
         button('menu.indstillinger', () => this.settings(), 'small', '⚙️'),
       ),
     );
@@ -332,6 +336,10 @@ export class App {
   private afterPresent(view: GameView, events: GameEvent[]) {
     const c = this.controller;
     if (!c || view !== this.view) return;
+    if (c.mode === 'tutorial') {
+      this.tutorial?.onPresented(view, events);
+      return;
+    }
     if (view.phase === 'over') {
       this.gameOver(view);
       return;
@@ -471,13 +479,41 @@ export class App {
           () =>
             mode === 'online'
               ? this.onlineMenu()
-              : this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
+              : mode === 'tutorial'
+                ? this.startTutorial()
+                : this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
           'big go',
           '🔁',
         ),
         button('slut.menu', () => this.menu(), '', '🏠'),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------- tutorial
+
+  /** "Sådan spiller du": the sergeant's walkthrough on a practice board. */
+  startTutorial() {
+    this.leaveGame();
+    this.show();
+    const c = new TutorialController();
+    this.controller = c;
+    this.view = null;
+    this.selected = null;
+    const tutorial = new Tutorial({
+      hint: (squares) => this.presenter.hint(squares),
+      done: (playNow) => {
+        markTutorialSeen();
+        if (playNow) this.chooseDifficulty();
+        else this.menu();
+      },
+      restart: () => this.startTutorial(),
+    });
+    this.tutorial = tutorial;
+    this.root.append(tutorial.el);
+    void this.stage.setSide('groen');
+    c.subscribe((view, events) => this.onView(view, events));
+    tutorial.start(c.view());
   }
 
   // ---------------------------------------------------------------- online
@@ -497,6 +533,8 @@ export class App {
   }
 
   private leaveGame() {
+    this.tutorial?.dispose();
+    this.tutorial = null;
     this.controller?.dispose();
     this.controller = null;
     this.setupState = null;
@@ -798,6 +836,7 @@ export class App {
     }
     this.selected = null;
     this.presenter.select(null, []);
+    this.tutorial?.rehint();
   }
 }
 
@@ -817,5 +856,23 @@ function saveMinigames(m: MinigameMode) {
     localStorage.setItem(MINIGAMES_KEY, m);
   } catch {
     // Not remembered in private mode; the default applies next time.
+  }
+}
+
+const TUTORIAL_KEY = 'antego.tutorial';
+
+export function tutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_KEY) === '1';
+  } catch {
+    return true; // without storage, don't force the tutorial on every visit
+  }
+}
+
+function markTutorialSeen() {
+  try {
+    localStorage.setItem(TUTORIAL_KEY, '1');
+  } catch {
+    // Not remembered in private mode.
   }
 }

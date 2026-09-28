@@ -3,7 +3,7 @@ import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/900.css';
 import './style.css';
 import { isRoomCode } from '@antego/shared';
-import { App } from './app.js';
+import { App, tutorialSeen } from './app.js';
 import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
 import { buildTable } from './scene/board.js';
@@ -100,7 +100,9 @@ async function boot() {
     history.replaceState(null, '', location.pathname);
     void app.joinOnline(room);
   } else if (!(await app.resumeOnline())) {
-    app.menu();
+    // First visit: the sergeant shows how to play.
+    if (tutorialSeen()) app.menu();
+    else app.startTutorial();
   }
 }
 

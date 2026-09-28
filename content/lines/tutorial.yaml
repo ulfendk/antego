@@ -1,0 +1,57 @@
+# "Sådan spiller du": the sergeant's walkthrough on a small practice board.
+id: tutorial
+lines:
+  - id: velkommen
+    speaker: sergent
+    text: Velkommen, soldat! Jeg er sergenten, og jeg viser dig, hvordan man spiller.
+  - id: maal
+    speaker: sergent
+    text: Målet er at finde og erobre fjendens flag – før fjenden tager dit.
+  - id: dine
+    speaker: sergent
+    text: Dine soldater er grønne. Tallet over dem viser, hvor stærke de er. Jo højere tal, jo stærkere.
+  - id: fjender
+    speaker: sergent
+    text: Fjendens soldater står bag plastikskjolde. Du ved ikke, hvem de er, før I kæmper.
+  - id: flyt
+    speaker: sergent
+    text: Tryk på din kaptajn med sekstallet – og tryk så på det lysende felt foran ham.
+  - id: flot_flyt
+    speaker: sergent
+    text: Flot! Soldater går ét felt ad gangen – frem, tilbage eller til siden. Aldrig på skrå.
+  - id: soeer
+    speaker: sergent
+    text: Ingen kan gå ud i søerne. Man må gå udenom!
+  - id: spejder
+    speaker: sergent
+    text: Spejderen med totallet er speciel. Han kan løbe mange felter på én gang i en lige linje.
+  - id: angrib
+    speaker: sergent
+    text: Nu skal vi kæmpe! Tryk på kaptajnen, og tryk så på fjendens skjold lige foran ham.
+  - id: kamp_forklaring
+    speaker: sergent
+    text: Når to soldater mødes, vinder den stærkeste. Er de næsten lige stærke, dyster de i et minispil – og den stærkeste får en lille fordel.
+  - id: miner
+    speaker: sergent
+    text: Pas på minerne! Den, der går på en mine, falder. Kun minøren kan desarmere den.
+  - id: spion
+    speaker: sergent
+    text: Spionen er den svageste soldat. Men hvis han angriber marskallen, vinder spionen!
+  - id: flag
+    speaker: sergent
+    text: Fjendens flag står lige derfremme. Gå frem med kaptajnen, og erobr det!
+  - id: godt
+    speaker: sergent
+    text: Godt klaret, soldat! Nu er du klar til din første rigtige kamp.
+  - id: igen
+    speaker: sergent
+    text: Hov, det gik ikke helt efter planen. Lad os prøve igen!
+  - id: videre
+    speaker: fortaeller
+    text: Videre
+  - id: spring_over
+    speaker: fortaeller
+    text: Spring over
+  - id: proev_igen
+    speaker: fortaeller
+    text: Prøv igen

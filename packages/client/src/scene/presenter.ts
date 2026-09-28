@@ -153,7 +153,19 @@ export class Presenter {
     if (!this.selected) return;
     void this.lift(this.selected, true);
     sfx.play('tick');
-    for (const t of targets) {
+    this.addRings(targets);
+  }
+
+  /** Pulse rings on some squares without selecting anything (the tutorial points at things). */
+  hint(squares: Pos[]) {
+    if (this.selected) void this.lift(this.selected, false);
+    this.selected = null;
+    this.clearRings();
+    this.addRings(squares);
+  }
+
+  private addRings(squares: Pos[]) {
+    for (const t of squares) {
       const ring = new THREE.Mesh(
         new THREE.PlaneGeometry(0.92, 0.92).rotateX(-Math.PI / 2),
         this.ringMat,
