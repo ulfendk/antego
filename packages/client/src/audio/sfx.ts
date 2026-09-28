@@ -23,7 +23,10 @@ export type Sound =
   | 'thud'
   | 'beep'
   | 'beepHigh'
-  | 'whistle';
+  | 'whistle'
+  | 'engine'
+  | 'whoosh'
+  | 'squeak';
 
 const KEY = 'antego.sfx';
 
@@ -174,7 +177,60 @@ const N = {
   C6: 1047,
 };
 
+/** A little toy engine going past: a putt-putting low buzz that rises and falls (Doppler-ish). */
+function engine(ctx: AudioContext, out: Out, t: number) {
+  const dur = 3.6;
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(58, t);
+  osc.frequency.linearRampToValueAtTime(76, t + dur * 0.45);
+  osc.frequency.linearRampToValueAtTime(52, t + dur);
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 520;
+  const putt = ctx.createGain();
+  putt.gain.value = 0.5;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 17;
+  const depth = ctx.createGain();
+  depth.gain.value = 0.5;
+  lfo.connect(depth).connect(putt.gain);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.14, t + dur * 0.45);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(f).connect(putt).connect(g).connect(out);
+  for (const o of [osc, lfo]) {
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+}
+
 const SOUNDS: Record<Sound, (ctx: AudioContext, out: Out, t: number) => void> = {
+  engine,
+  whoosh: (c, o, t) =>
+    noise(c, o, {
+      t,
+      dur: 2.4,
+      gain: 0.08,
+      type: 'bandpass',
+      freq: 400,
+      freq1: 1400,
+      q: 1.2,
+      attack: 0.9,
+    }),
+  squeak: (c, o, t) => {
+    for (let i = 0; i < 3; i++) {
+      tone(c, o, {
+        f0: vary(1250, 0.1),
+        f1: 1500,
+        t: t + i * 0.18,
+        dur: 0.12,
+        gain: 0.05,
+        vibrato: { rate: 40, depth: 60 },
+      });
+    }
+  },
   click: (c, o, t) => {
     tone(c, o, { type: 'triangle', f0: 1400, f1: 900, t, dur: 0.045, gain: 0.12 });
     noise(c, o, { t, dur: 0.02, gain: 0.06, type: 'highpass', freq: 4000 });

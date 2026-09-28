@@ -126,6 +126,11 @@ export class PieceObject extends THREE.Group {
   rank: Rank | null = null;
   /** The part that tips over, hops and lifts (the shadow stays on the board). */
   readonly body = new THREE.Group();
+  /**
+   * Inside the body, in the soldier's own frame (x: his left–right, z: forward): the waddle
+   * rocks this group on the base plate's edges, and the threatening lunge tilts it forward.
+   */
+  readonly rig = new THREE.Group();
   private badgeSprite: THREE.Sprite | null = null;
   private shadow: THREE.Mesh;
 
@@ -138,6 +143,7 @@ export class PieceObject extends THREE.Group {
     this.shadow = new THREE.Mesh(kit.shadowGeo, kit.shadowMat);
     this.shadow.position.y = 0.002;
     this.shadow.renderOrder = 1;
+    this.body.add(this.rig);
     this.add(this.shadow, this.body);
     // A touch bigger than a real army man on a Stratego square, so small screens read well.
     this.scale.setScalar(PIECE_SCALE);
@@ -147,12 +153,12 @@ export class PieceObject extends THREE.Group {
 
   /** Show the soldier for a known rank, or the army's hidden card for null. */
   setRank(rank: Rank | null, showBadge: boolean) {
-    if (rank === this.rank && this.body.children.length) {
+    if (rank === this.rank && this.rig.children.length) {
       this.setBadge(showBadge);
       return;
     }
     this.rank = rank;
-    this.body.clear();
+    this.rig.clear();
     this.badgeSprite = null;
     if (rank) {
       const set = this.kit.models.get(rank)!;
@@ -168,7 +174,7 @@ export class PieceObject extends THREE.Group {
       }
       if (this.kit.lod0Distance > 0) lod.addLevel(hi, 0);
       lod.addLevel(lo, this.kit.lod0Distance);
-      this.body.add(lod);
+      this.rig.add(lod);
     } else {
       // Rank unknown: the army's plastic tile, embossed emblem on both faces.
       const m = this.kit.tile(this.team);
@@ -187,7 +193,7 @@ export class PieceObject extends THREE.Group {
       const foot = new THREE.Mesh(this.kit.footGeo, m.body);
       foot.position.y = 0.025;
       foot.castShadow = foot.receiveShadow = true;
-      this.body.add(tile, foot);
+      this.rig.add(tile, foot);
     }
     this.setBadge(showBadge);
   }

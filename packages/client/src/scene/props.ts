@@ -36,7 +36,7 @@ const LAYOUTS: Record<BoardId, BoxLayout> = {
       const s = team === 'groen' ? 1 : -1;
       return new THREE.Vector3(s * 8.5, 0, s * 2.4);
     },
-    lid: [-9.5, -9, 0.5],
+    lid: [-12.5, -11, 0.5],
     spares: [
       ['groen', 'spejder', 8.6, -6.4, 0.6],
       ['sand', 'sergent', -7.2, 7.6, 2.4],
@@ -54,7 +54,7 @@ const LAYOUTS: Record<BoardId, BoxLayout> = {
       const [x, z] = { groen: [6, 6], blaa: [-6, 6], sand: [-6, -6], brun: [6, -6] }[team];
       return new THREE.Vector3(x, 0, z);
     },
-    lid: [-11.5, -10.5, 0.5],
+    lid: [-14, -13, 0.5],
     spares: [
       ['groen', 'spejder', 11, -9, 0.6],
       ['blaa', 'sergent', -9.5, 11, 2.4],
@@ -63,6 +63,16 @@ const LAYOUTS: Record<BoardId, BoxLayout> = {
 };
 
 const layout = () => LAYOUTS[activeBoard().id];
+
+/** Toy box centres and how far their flaps reach (the easter-egg tank hides behind one). */
+export function toyBoxCentres(): { centre: THREE.Vector3; radius: number }[] {
+  const L = layout();
+  const radius = Math.max(L.w, L.d) / 2 + L.flap * 0.6;
+  return (Object.keys(activeBoard().forward) as Team[]).map((t) => ({
+    centre: L.centre(t),
+    radius,
+  }));
+}
 
 /** Where the n-th fallen soldier of an army lies in its toy box (in rows, then layers). */
 export function toyBoxSlot(team: Team, index: number) {

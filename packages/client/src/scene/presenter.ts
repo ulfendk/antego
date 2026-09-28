@@ -154,6 +154,11 @@ export class Presenter {
     obj.shadowOpacity = 0.4;
   }
 
+  /** Soldiers lying in the toy boxes. */
+  fallenPieces(): PieceObject[] {
+    return [...this.fallen.values()];
+  }
+
   /** Pieces standing on the board (for tap picking). */
   boardPieces(): THREE.Object3D[] {
     return [...this.pieces.values()];
@@ -244,6 +249,7 @@ export class Presenter {
         const to = { x: Math.round(def.position.x + 4.5), y: Math.round(def.position.z + 4.5) };
         await this.hooks.focus?.(squareToWorld(to).lerp(squareToWorld(from), 0.25));
         await this.hop(att, from, to, 0.55);
+        await this.threaten(att, def);
         sfx.play('clash');
         att.setRank(e.attackerRank, false);
         await this.reveal(def, e.defenderRank);
@@ -296,46 +302,66 @@ export class Presenter {
 
   private lastBattle: { att: PieceObject; from: Pos; to: Pos; reason: string } | null = null;
 
-  /** Toy-soldier hop: they're stuck to their bases, so they bounce along. */
+  /** Toy-soldier walk: they're glued to their base plates, so they waddle along. */
   private hop(obj: PieceObject, from: Pos, to: Pos, fraction = 1) {
     const a = squareToWorld(from);
     return this.hopFrom(obj, a, a.clone().lerp(squareToWorld(to), fraction));
   }
 
+  /**
+   * The army-man waddle: the boots are fixed to the plate, so he tips onto one edge of it,
+   * swings forward, sets it down (tap!) and tips onto the other edge – two rocks per square.
+   */
   private async hopFrom(obj: PieceObject, a: THREE.Vector3, b: THREE.Vector3) {
     const dist = a.distanceTo(b);
-    const hops = Math.max(1, Math.round(dist));
-    // Unhurried hops; a scout's long run speeds up a little so it doesn't drag.
-    const dur = Math.max(300, 460 - hops * 25);
+    const rocks = Math.max(2, Math.round(dist * 2));
+    // Unhurried steps; a scout's long run speeds up a little so it doesn't drag.
+    const dur = Math.max(160, 250 - rocks * 6);
+    const rig = obj.rig;
     obj.body.position.y = 0;
     obj.body.rotation.x = 0;
-    for (let i = 0; i < hops; i++) {
-      const p0 = a.clone().lerp(b, i / hops);
-      const p1 = a.clone().lerp(b, (i + 1) / hops);
+    for (let i = 0; i < rocks; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const p0 = a.clone().lerp(b, i / rocks);
+      const p1 = a.clone().lerp(b, (i + 1) / rocks);
       await tween(
         dur,
         (k) => {
-          obj.position.lerpVectors(p0, p1, k);
-          const arc = Math.sin(k * Math.PI);
-          obj.body.position.y = arc * 0.22;
-          obj.body.rotation.z = Math.sin(k * Math.PI * 2) * 0.08;
-          obj.shadowOpacity = 1 - arc * 0.5;
+          const lift = Math.sin(k * Math.PI);
+          tipOnEdge(rig, side * 0.32 * lift);
+          // The lifted side swings round a little, like shuffling on one corner.
+          rig.rotation.y = side * 0.12 * lift;
+          obj.position.lerpVectors(p0, p1, ease.inOut(k));
+          obj.shadowOpacity = 1 - lift * 0.2;
         },
         ease.linear,
       );
-      // Squash as the base lands on the cardboard.
       sfx.play('tap');
+    }
+    tipOnEdge(rig, 0);
+    rig.rotation.set(0, 0, 0);
+    obj.shadowOpacity = 1;
+  }
+
+  /** Before the reveal: the attacker lunges twice and the hidden enemy trembles. */
+  private async threaten(att: PieceObject, def: PieceObject) {
+    for (let i = 0; i < 2; i++) {
+      sfx.play('hop');
       await tween(
-        140,
+        170,
         (k) => {
-          const s = 1 - Math.sin(k * Math.PI) * 0.07;
-          obj.body.scale.set(1 + (1 - s) * 0.5, s, 1 + (1 - s) * 0.5);
+          const s = Math.sin(k * Math.PI);
+          att.rig.rotation.x = 0.38 * s;
+          att.rig.position.z = 0.1 * s;
+          att.rig.position.y = 0.04 * s;
+          def.rig.rotation.z = Math.sin(k * Math.PI * 6) * 0.06;
         },
         ease.linear,
       );
     }
-    obj.body.rotation.z = 0;
-    obj.body.scale.set(1, 1, 1);
+    att.rig.rotation.x = 0;
+    att.rig.position.set(0, 0, 0);
+    def.rig.rotation.z = 0;
   }
 
   private async reveal(obj: PieceObject, rank: Rank) {
@@ -385,4 +411,18 @@ export class Presenter {
     this.layDown(obj);
     this.fallen.set(obj.pieceId, obj);
   }
+}
+
+/** Base plate half-width in the soldier's own frame (model units): the edge he rocks onto. */
+const PLATE_HALF = 0.21;
+
+/**
+ * Roll the soldier by `theta` about one long edge of his base plate instead of its centre:
+ * a positive roll lifts his right side, so he pivots on the left edge (and vice versa).
+ */
+function tipOnEdge(rig: THREE.Object3D, theta: number) {
+  const edge = theta >= 0 ? -PLATE_HALF : PLATE_HALF;
+  rig.rotation.z = theta;
+  rig.position.x = edge - edge * Math.cos(theta);
+  rig.position.y = -edge * Math.sin(theta);
 }

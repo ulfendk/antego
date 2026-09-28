@@ -7,6 +7,7 @@ import { App, tutorialSeen } from './app.js';
 import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
 import { World } from './scene/world.js';
+import { EasterEggs } from './scene/eggs.js';
 import { PieceKit } from './scene/pieces.js';
 import { Presenter } from './scene/presenter.js';
 import { SETTINGS, detectQuality, saveQuality, savedQuality } from './scene/quality.js';
@@ -60,7 +61,11 @@ async function boot() {
   stage.scene.add(presenter.group);
   const world = new World(stage.scene, kit, SETTINGS[quality].printSize);
   world.use('klassisk');
-  stage.onFrame = (dt) => presenter.update(dt);
+  const eggs = new EasterEggs(stage.scene, stage, presenter);
+  stage.onFrame = (dt) => {
+    presenter.update(dt);
+    eggs.update(dt);
+  };
   // Automatic tier only: if this device struggles, step down once.
   stage.onSlow = () => {
     if (savedQuality() || stage.quality === 'lav') return;
@@ -91,6 +96,7 @@ async function boot() {
       sfx,
       measureSound,
       ALL_SOUNDS,
+      eggs,
     });
   }
   // A shared link (?rum=1234) joins that game; a reload rejoins the game we were in.
