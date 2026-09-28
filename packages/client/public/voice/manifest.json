@@ -1,0 +1,927 @@
+{
+  "kamp.angriber": {
+    "file": "2d97122199a3a22d.mp3",
+    "text": "angriber",
+    "speaker": "sergent"
+  },
+  "kamp.vinder": {
+    "file": "b2dd0bf7401d6cb6.mp3",
+    "text": "vinder!",
+    "speaker": "sergent"
+  },
+  "kamp.begge": {
+    "file": "f88d349a420153ac.mp3",
+    "text": "Lige stærke! Begge soldater falder.",
+    "speaker": "sergent"
+  },
+  "kamp.mine": {
+    "file": "f192070352dccf11.mp3",
+    "text": "Bum! Det var en mine!",
+    "speaker": "sergent"
+  },
+  "kamp.desarmeret": {
+    "file": "ba250b9229e3b0ab.mp3",
+    "text": "Minøren desarmerer minen!",
+    "speaker": "sergent"
+  },
+  "kamp.spion": {
+    "file": "afa202ffa7daab87.mp3",
+    "text": "Spionen overlister marskallen!",
+    "speaker": "sergent"
+  },
+  "kamp.flag": {
+    "file": "d7608897e732b340.mp3",
+    "text": "Flaget er erobret!",
+    "speaker": "sergent"
+  },
+  "menu.titel": {
+    "file": "1712abd367e3ee3d.mp3",
+    "text": "Antego",
+    "speaker": "fortaeller"
+  },
+  "menu.spil_computer": {
+    "file": "9bd68c9b5f59ad67.mp3",
+    "text": "Spil mod computeren",
+    "speaker": "fortaeller"
+  },
+  "menu.spil_to": {
+    "file": "9166dff736dcef7d.mp3",
+    "text": "To spillere på én skærm",
+    "speaker": "fortaeller"
+  },
+  "menu.spil_online": {
+    "file": "e9c76b86d1c44b08.mp3",
+    "text": "Spil online",
+    "speaker": "fortaeller"
+  },
+  "menu.svaerhed": {
+    "file": "cb4df699b4262696.mp3",
+    "text": "Hvor klog skal computeren være?",
+    "speaker": "fortaeller"
+  },
+  "menu.let": {
+    "file": "0064a237301f25bd.mp3",
+    "text": "Let",
+    "speaker": "fortaeller"
+  },
+  "menu.mellem": {
+    "file": "fc5c11454e4760b8.mp3",
+    "text": "Mellem",
+    "speaker": "fortaeller"
+  },
+  "menu.svaer": {
+    "file": "00e0842a5708f654.mp3",
+    "text": "Svær",
+    "speaker": "fortaeller"
+  },
+  "menu.antal": {
+    "file": "cf691dfd0bd3fb84.mp3",
+    "text": "Hvor mange hære skal være med?",
+    "speaker": "fortaeller"
+  },
+  "menu.to_haere": {
+    "file": "3e117c6c290cf87d.mp3",
+    "text": "To hære – klassisk",
+    "speaker": "fortaeller"
+  },
+  "menu.tre_haere": {
+    "file": "99db2c85e0e75df2.mp3",
+    "text": "Tre hære",
+    "speaker": "fortaeller"
+  },
+  "menu.fire_haere": {
+    "file": "e000409671f480e7.mp3",
+    "text": "Fire hære",
+    "speaker": "fortaeller"
+  },
+  "menu.hold_spoerg": {
+    "file": "6a1f98f69209a833.mp3",
+    "text": "Skal I spille alle mod alle – eller to mod to?",
+    "speaker": "fortaeller"
+  },
+  "menu.alle_mod_alle": {
+    "file": "aa107ceeda5d1d37.mp3",
+    "text": "Alle mod alle",
+    "speaker": "fortaeller"
+  },
+  "menu.to_mod_to": {
+    "file": "873f4d5e7af2f693.mp3",
+    "text": "To mod to",
+    "speaker": "fortaeller"
+  },
+  "menu.minispil": {
+    "file": "4c80b49857cc3f7f.mp3",
+    "text": "Skal lige stærke soldater dyste i et minispil?",
+    "speaker": "fortaeller"
+  },
+  "menu.minispil_ja": {
+    "file": "ef6d244d4a7b48e7.mp3",
+    "text": "Ja, de dyster",
+    "speaker": "fortaeller"
+  },
+  "menu.minispil_nej": {
+    "file": "80196c70cc65f5ba.mp3",
+    "text": "Nej, begge falder",
+    "speaker": "fortaeller"
+  },
+  "menu.start": {
+    "file": "a43aa937530a237b.mp3",
+    "text": "Start!",
+    "speaker": "sergent"
+  },
+  "menu.tilbage": {
+    "file": "91529c31b23da3e5.mp3",
+    "text": "Tilbage",
+    "speaker": "fortaeller"
+  },
+  "menu.grafik": {
+    "file": "ff141b6565823b48.mp3",
+    "text": "Grafik",
+    "speaker": "fortaeller"
+  },
+  "menu.grafik_hoej": {
+    "file": "3846faf399d88a5d.mp3",
+    "text": "Flot",
+    "speaker": "fortaeller"
+  },
+  "menu.grafik_mellem": {
+    "file": "1256c589fc262cf0.mp3",
+    "text": "Normal",
+    "speaker": "fortaeller"
+  },
+  "menu.grafik_lav": {
+    "file": "eb2f376f4c33758f.mp3",
+    "text": "Hurtig",
+    "speaker": "fortaeller"
+  },
+  "menu.lyd": {
+    "file": "4fa151525fd390bb.mp3",
+    "text": "Oplæsning",
+    "speaker": "fortaeller"
+  },
+  "menu.lydeffekter": {
+    "file": "b236d71940534c49.mp3",
+    "text": "Lydeffekter",
+    "speaker": "fortaeller"
+  },
+  "menu.til": {
+    "file": "9e6f48d02ebb0f14.mp3",
+    "text": "Til",
+    "speaker": "fortaeller"
+  },
+  "menu.fra": {
+    "file": "035169a1c56c4ecc.mp3",
+    "text": "Fra",
+    "speaker": "fortaeller"
+  },
+  "menu.indstillinger": {
+    "file": "389253fce0372e0d.mp3",
+    "text": "Indstillinger",
+    "speaker": "fortaeller"
+  },
+  "menu.tutorial": {
+    "file": "9e9bc73543e41f5d.mp3",
+    "text": "Sådan spiller du",
+    "speaker": "fortaeller"
+  },
+  "menu.opdaterer": {
+    "file": "6f2a8dbab82062b1.mp3",
+    "text": "Spillet bliver opdateret…",
+    "speaker": "fortaeller"
+  },
+  "menu.ny_version": {
+    "file": "376a6706d5cd2c5b.mp3",
+    "text": "Der er en ny version af spillet. Den kommer, når I holder pause.",
+    "speaker": "fortaeller"
+  },
+  "minispil.faldskaerm": {
+    "file": "d80d249ce01bd3ad.mp3",
+    "text": "Faldskærm!",
+    "speaker": "sergent"
+  },
+  "minispil.faldskaerm_hjaelp": {
+    "file": "d63ed1a7965762f9.mp3",
+    "text": "Træk fingeren til siden og styr faldskærmssoldaten ned på målet.",
+    "speaker": "fortaeller"
+  },
+  "minispil.korkskud": {
+    "file": "d85346998056d18a.mp3",
+    "text": "Korkskud!",
+    "speaker": "sergent"
+  },
+  "minispil.korkskud_hjaelp": {
+    "file": "c5a2913dd81b5126.mp3",
+    "text": "Tryk på skiverne, så hurtigt du kan – før de forsvinder igen.",
+    "speaker": "fortaeller"
+  },
+  "minispil.stormloeb": {
+    "file": "4ce1693222722682.mp3",
+    "text": "Stormløb!",
+    "speaker": "sergent"
+  },
+  "minispil.stormloeb_hjaelp": {
+    "file": "35673e501fb6ae10.mp3",
+    "text": "Tryk og tryk og tryk! Jo hurtigere du trykker, jo længere løber soldaten.",
+    "speaker": "fortaeller"
+  },
+  "minispil.spiller_groen": {
+    "file": "f1a281757c69bc03.mp3",
+    "text": "Den grønne hær kæmper nu.",
+    "speaker": "groen"
+  },
+  "minispil.spiller_sand": {
+    "file": "a6e8d86e97145bc5.mp3",
+    "text": "Den sandfarvede hær kæmper nu.",
+    "speaker": "sand"
+  },
+  "minispil.spiller_blaa": {
+    "file": "9460acd9a4226b90.mp3",
+    "text": "Den gråblå hær kæmper nu.",
+    "speaker": "blaa"
+  },
+  "minispil.spiller_brun": {
+    "file": "d939bb2f32591086.mp3",
+    "text": "Den brune hær kæmper nu.",
+    "speaker": "brun"
+  },
+  "minispil.klar": {
+    "file": "bac4876efddc80f3.mp3",
+    "text": "Klar …",
+    "speaker": "sergent"
+  },
+  "minispil.parat": {
+    "file": "6b6d9ac09584607f.mp3",
+    "text": "parat …",
+    "speaker": "sergent"
+  },
+  "minispil.start": {
+    "file": "491f12634b263c39.mp3",
+    "text": "start!",
+    "speaker": "sergent"
+  },
+  "minispil.faerdig": {
+    "file": "39b63adf4adb6714.mp3",
+    "text": "Færdig!",
+    "speaker": "sergent"
+  },
+  "minispil.venter": {
+    "file": "f17575a4338de4fd.mp3",
+    "text": "Modstanderen kæmper stadig …",
+    "speaker": "fortaeller"
+  },
+  "minispil.hop": {
+    "file": "87ab3c53acf2d623.mp3",
+    "text": "Hop!",
+    "speaker": "sergent"
+  },
+  "online.titel": {
+    "file": "e9c76b86d1c44b08.mp3",
+    "text": "Spil online",
+    "speaker": "fortaeller"
+  },
+  "online.opret": {
+    "file": "625f32443cf72efb.mp3",
+    "text": "Start et nyt spil",
+    "speaker": "fortaeller"
+  },
+  "online.deltag": {
+    "file": "4fcfc2d0e772690a.mp3",
+    "text": "Deltag med en kode",
+    "speaker": "fortaeller"
+  },
+  "online.din_kode": {
+    "file": "256e8462730c7576.mp3",
+    "text": "Jeres kode er",
+    "speaker": "fortaeller"
+  },
+  "online.vis_kode": {
+    "file": "13581b7f49437dab.mp3",
+    "text": "Sig koden til din ven – eller lad dem scanne den.",
+    "speaker": "fortaeller"
+  },
+  "online.venter": {
+    "file": "663af805b4a08e27.mp3",
+    "text": "Venter på en modstander …",
+    "speaker": "fortaeller"
+  },
+  "online.skriv_kode": {
+    "file": "31c508cf8a212a25.mp3",
+    "text": "Skriv koden fra din ven.",
+    "speaker": "fortaeller"
+  },
+  "online.slet": {
+    "file": "8d99e3a1397ee0d7.mp3",
+    "text": "Slet",
+    "speaker": "fortaeller"
+  },
+  "online.forbind": {
+    "file": "d5dec36c06fc8fe1.mp3",
+    "text": "Forbind",
+    "speaker": "fortaeller"
+  },
+  "online.forbinder": {
+    "file": "2f3646a01507d854.mp3",
+    "text": "Forbinder …",
+    "speaker": "fortaeller"
+  },
+  "online.ukendt_kode": {
+    "file": "a477b29c1a290f7b.mp3",
+    "text": "Den kode findes ikke. Prøv igen.",
+    "speaker": "fortaeller"
+  },
+  "online.fuld": {
+    "file": "04f277d85aa83c6e.mp3",
+    "text": "Det spil er allerede fyldt.",
+    "speaker": "fortaeller"
+  },
+  "online.ingen_net": {
+    "file": "417347fc58629240.mp3",
+    "text": "Der er ingen forbindelse. Prøv igen om lidt.",
+    "speaker": "fortaeller"
+  },
+  "online.forsinket": {
+    "file": "33cbe173b17a4a36.mp3",
+    "text": "Spillet bliver opdateret. Prøv igen om et øjeblik.",
+    "speaker": "fortaeller"
+  },
+  "online.du_er_groen": {
+    "file": "d819d1c53be6169b.mp3",
+    "text": "Du fører den grønne hær.",
+    "speaker": "groen"
+  },
+  "online.du_er_sand": {
+    "file": "955cb725d3126746.mp3",
+    "text": "Du fører den sandfarvede hær.",
+    "speaker": "sand"
+  },
+  "online.du_er_blaa": {
+    "file": "f1b112f8c1668878.mp3",
+    "text": "Du fører den gråblå hær.",
+    "speaker": "blaa"
+  },
+  "online.du_er_brun": {
+    "file": "6f40f8b4460cb16c.mp3",
+    "text": "Du fører den brune hær.",
+    "speaker": "brun"
+  },
+  "online.venter_opstilling": {
+    "file": "457c8c70fb2c5d91.mp3",
+    "text": "Venter på, at modstanderen stiller op …",
+    "speaker": "fortaeller"
+  },
+  "online.modstander_tur": {
+    "file": "c3983c5f304f3f52.mp3",
+    "text": "Modstanderen tænker …",
+    "speaker": "fortaeller"
+  },
+  "online.modstander_vaek": {
+    "file": "002416b9ad8a9bbc.mp3",
+    "text": "Modstanderen har mistet forbindelsen. Vi venter lidt …",
+    "speaker": "fortaeller"
+  },
+  "online.modstander_tilbage": {
+    "file": "14b7088314965044.mp3",
+    "text": "Modstanderen er tilbage!",
+    "speaker": "fortaeller"
+  },
+  "online.mistet": {
+    "file": "c9e3e88845b09fd7.mp3",
+    "text": "Forbindelsen blev afbrudt. Vi prøver igen …",
+    "speaker": "fortaeller"
+  },
+  "online.tilbage": {
+    "file": "34e3f52ffce90608.mp3",
+    "text": "Forbindelsen er tilbage!",
+    "speaker": "fortaeller"
+  },
+  "opstilling.titel": {
+    "file": "556b8a17ad1eda19.mp3",
+    "text": "Stil dine soldater op!",
+    "speaker": "sergent"
+  },
+  "opstilling.hjaelp": {
+    "file": "d66e9ac1ca0fad32.mp3",
+    "text": "Vælg en opstilling – eller tryk på to soldater for at bytte dem.",
+    "speaker": "fortaeller"
+  },
+  "opstilling.forsvar": {
+    "file": "6d9a0ffc8d0cabb3.mp3",
+    "text": "Forsvar",
+    "speaker": "fortaeller"
+  },
+  "opstilling.angreb": {
+    "file": "d0e8400b9749edbf.mp3",
+    "text": "Angreb",
+    "speaker": "fortaeller"
+  },
+  "opstilling.snigende": {
+    "file": "c8be3eb7738ce7ed.mp3",
+    "text": "Snigende",
+    "speaker": "fortaeller"
+  },
+  "opstilling.bland": {
+    "file": "8768f4d02ea859ce.mp3",
+    "text": "Bland",
+    "speaker": "fortaeller"
+  },
+  "opstilling.klar": {
+    "file": "bf750086b3769e64.mp3",
+    "text": "Klar!",
+    "speaker": "sergent"
+  },
+  "race.titel": {
+    "file": "eb279ecd4c3a2f54.mp3",
+    "text": "Jeepræs!",
+    "speaker": "sergent"
+  },
+  "race.hjaelp": {
+    "file": "bebd991deea510fe.mp3",
+    "text": "Sæt tommelfingeren på skærmen og skub den derhen, hvor jeepen skal køre. Følg tapen tre gange rundt om brættet – og pas på søerne!",
+    "speaker": "fortaeller"
+  },
+  "race.sidste_omgang": {
+    "file": "c3045c8911a3bd0a.mp3",
+    "text": "Sidste omgang!",
+    "speaker": "sergent"
+  },
+  "race.forkert_vej": {
+    "file": "894100bb43c0d12d.mp3",
+    "text": "Forkert vej, soldat! Vend om!",
+    "speaker": "sergent"
+  },
+  "race.nummer_1": {
+    "file": "3849d854b2d28a38.mp3",
+    "text": "Du vandt! Du er den hurtigste på hele bordet.",
+    "speaker": "fortaeller"
+  },
+  "race.nummer_2": {
+    "file": "983d1fa614afb03f.mp3",
+    "text": "Du blev nummer to. Flot kørt!",
+    "speaker": "fortaeller"
+  },
+  "race.nummer_3": {
+    "file": "492d87e6df6c6816.mp3",
+    "text": "Du blev nummer tre. Godt kæmpet!",
+    "speaker": "fortaeller"
+  },
+  "race.nummer_4": {
+    "file": "24982c14ca112a8b.mp3",
+    "text": "Du blev nummer fire. Prøv igen – du kan godt!",
+    "speaker": "fortaeller"
+  },
+  "race.igen": {
+    "file": "6c57f2c6905ed365.mp3",
+    "text": "Kør igen",
+    "speaker": "fortaeller"
+  },
+  "race.stop": {
+    "file": "f63d47d4195abdeb.mp3",
+    "text": "Stop løbet",
+    "speaker": "fortaeller"
+  },
+  "rang.marskal": {
+    "file": "811c671dc58c8ec1.mp3",
+    "text": "Marskal",
+    "speaker": "sergent"
+  },
+  "rang.general": {
+    "file": "7b9e5182c6818151.mp3",
+    "text": "General",
+    "speaker": "sergent"
+  },
+  "rang.oberst": {
+    "file": "ee7a448cadc54784.mp3",
+    "text": "Oberst",
+    "speaker": "sergent"
+  },
+  "rang.major": {
+    "file": "8f5f9c39981b61ec.mp3",
+    "text": "Major",
+    "speaker": "sergent"
+  },
+  "rang.kaptajn": {
+    "file": "ffe0716c76995f3e.mp3",
+    "text": "Kaptajn",
+    "speaker": "sergent"
+  },
+  "rang.loejtnant": {
+    "file": "2720a6b89ee517a4.mp3",
+    "text": "Løjtnant",
+    "speaker": "sergent"
+  },
+  "rang.sergent": {
+    "file": "30e683cf4e84049d.mp3",
+    "text": "Sergent",
+    "speaker": "sergent"
+  },
+  "rang.minoer": {
+    "file": "bbf1fa4dd97646d8.mp3",
+    "text": "Minør",
+    "speaker": "sergent"
+  },
+  "rang.spejder": {
+    "file": "6387d8d1b6570d5d.mp3",
+    "text": "Spejder",
+    "speaker": "sergent"
+  },
+  "rang.spion": {
+    "file": "f94ce3855c37ca75.mp3",
+    "text": "Spion",
+    "speaker": "sergent"
+  },
+  "rang.mine": {
+    "file": "cff2328ef5b00840.mp3",
+    "text": "Mine",
+    "speaker": "sergent"
+  },
+  "rang.flag": {
+    "file": "69e87ab501171cd9.mp3",
+    "text": "Flag",
+    "speaker": "sergent"
+  },
+  "rang.marskal_info": {
+    "file": "ffc2b9846ae6dbf0.mp3",
+    "text": "Marskallen er den stærkeste soldat. Men pas på spionen!",
+    "speaker": "fortaeller"
+  },
+  "rang.general_info": {
+    "file": "2db60c8cea5d614e.mp3",
+    "text": "Generalen er næsten lige så stærk som marskallen.",
+    "speaker": "fortaeller"
+  },
+  "rang.oberst_info": {
+    "file": "9b2899c6aa7b6b4e.mp3",
+    "text": "Obersten er en stærk soldat.",
+    "speaker": "fortaeller"
+  },
+  "rang.major_info": {
+    "file": "7239e174f7dd4a41.mp3",
+    "text": "Majoren er god til at slå de svagere soldater.",
+    "speaker": "fortaeller"
+  },
+  "rang.kaptajn_info": {
+    "file": "44ca14b4dc55fc55.mp3",
+    "text": "Kaptajnen er en solid soldat midt i hæren.",
+    "speaker": "fortaeller"
+  },
+  "rang.loejtnant_info": {
+    "file": "984e53bb88fdcd3b.mp3",
+    "text": "Løjtnanten er modig og hurtig på aftrækkeren.",
+    "speaker": "fortaeller"
+  },
+  "rang.sergent_info": {
+    "file": "47f62b19e0ee3b71.mp3",
+    "text": "Sergenten holder sammen på tropperne.",
+    "speaker": "fortaeller"
+  },
+  "rang.minoer_info": {
+    "file": "ef4263b4c661ba34.mp3",
+    "text": "Minøren er den eneste, der kan desarmere miner.",
+    "speaker": "fortaeller"
+  },
+  "rang.spejder_info": {
+    "file": "d2888db0b7664339.mp3",
+    "text": "Spejderen kan løbe mange felter på én gang.",
+    "speaker": "fortaeller"
+  },
+  "rang.spion_info": {
+    "file": "1a6601345598c103.mp3",
+    "text": "Spionen er svag – men han kan slå marskallen, hvis han angriber først.",
+    "speaker": "fortaeller"
+  },
+  "rang.mine_info": {
+    "file": "c613ef8364eb71c0.mp3",
+    "text": "Minen kan ikke flytte sig. Den, der går på den, falder – undtagen minøren.",
+    "speaker": "fortaeller"
+  },
+  "rang.flag_info": {
+    "file": "0607cf25389cbc55.mp3",
+    "text": "Pas godt på flaget! Hvis fjenden tager det, har I tabt.",
+    "speaker": "fortaeller"
+  },
+  "slut.groen_vinder": {
+    "file": "51110925cde91504.mp3",
+    "text": "Den grønne hær vinder!",
+    "speaker": "groen"
+  },
+  "slut.sand_vinder": {
+    "file": "179970953a0c5f3a.mp3",
+    "text": "Den sandfarvede hær vinder!",
+    "speaker": "sand"
+  },
+  "slut.blaa_vinder": {
+    "file": "c6cba73ca981da7b.mp3",
+    "text": "Den gråblå hær vinder!",
+    "speaker": "blaa"
+  },
+  "slut.brun_vinder": {
+    "file": "b953f680623252ae.mp3",
+    "text": "Den brune hær vinder!",
+    "speaker": "brun"
+  },
+  "slut.hold_groen": {
+    "file": "f88b9c1be53cb628.mp3",
+    "text": "Den grønne og den sandfarvede hær vinder sammen!",
+    "speaker": "sergent"
+  },
+  "slut.hold_blaa": {
+    "file": "8185be1e1a7b0b07.mp3",
+    "text": "Den gråblå og den brune hær vinder sammen!",
+    "speaker": "sergent"
+  },
+  "slut.du_vandt": {
+    "file": "720f9c0294be8cb3.mp3",
+    "text": "Du vandt! Godt kæmpet, soldat!",
+    "speaker": "sergent"
+  },
+  "slut.du_tabte": {
+    "file": "f2e3eb97da974490.mp3",
+    "text": "Computeren vandt denne gang. Prøv igen!",
+    "speaker": "sergent"
+  },
+  "slut.ingen_traek": {
+    "file": "2b8095bb96541fc0.mp3",
+    "text": "Modstanderen kunne ikke flytte flere soldater.",
+    "speaker": "fortaeller"
+  },
+  "slut.opgivet": {
+    "file": "84e27e0e97de8d48.mp3",
+    "text": "Modstanderen gav op.",
+    "speaker": "fortaeller"
+  },
+  "slut.igen": {
+    "file": "0af08a47f541ba12.mp3",
+    "text": "Spil igen",
+    "speaker": "fortaeller"
+  },
+  "slut.menu": {
+    "file": "7c1bf6d7c4267707.mp3",
+    "text": "Til menuen",
+    "speaker": "fortaeller"
+  },
+  "slut.modstander_vandt": {
+    "file": "3397092b488b3ad9.mp3",
+    "text": "Modstanderen vandt denne gang. Godt kæmpet!",
+    "speaker": "sergent"
+  },
+  "spil.tur_groen": {
+    "file": "fe9c9a59bf468ae4.mp3",
+    "text": "Grøn hær – det er jeres tur!",
+    "speaker": "groen"
+  },
+  "spil.tur_sand": {
+    "file": "832db4ff7ec35ea0.mp3",
+    "text": "Sandfarvet hær – det er jeres tur!",
+    "speaker": "sand"
+  },
+  "spil.tur_blaa": {
+    "file": "d03d4d8e05fb1df5.mp3",
+    "text": "Gråblå hær – det er jeres tur!",
+    "speaker": "blaa"
+  },
+  "spil.tur_brun": {
+    "file": "0ac2bc6e35252f8c.mp3",
+    "text": "Brun hær – det er jeres tur!",
+    "speaker": "brun"
+  },
+  "spil.din_tur": {
+    "file": "baac75d1bbc7e8e4.mp3",
+    "text": "Din tur, soldat!",
+    "speaker": "sergent"
+  },
+  "spil.computer_tur": {
+    "file": "0180bc404af1e097.mp3",
+    "text": "Computeren tænker…",
+    "speaker": "fortaeller"
+  },
+  "spil.giv_groen": {
+    "file": "fd3f40748ee56f28.mp3",
+    "text": "Giv skærmen til den grønne hær. Ingen kigger!",
+    "speaker": "fortaeller"
+  },
+  "spil.giv_sand": {
+    "file": "0f821429b1a2702a.mp3",
+    "text": "Giv skærmen til den sandfarvede hær. Ingen kigger!",
+    "speaker": "fortaeller"
+  },
+  "spil.giv_blaa": {
+    "file": "99659b2e3b6a756f.mp3",
+    "text": "Giv skærmen til den gråblå hær. Ingen kigger!",
+    "speaker": "fortaeller"
+  },
+  "spil.giv_brun": {
+    "file": "140df642483ceb69.mp3",
+    "text": "Giv skærmen til den brune hær. Ingen kigger!",
+    "speaker": "fortaeller"
+  },
+  "spil.jeg_er_klar": {
+    "file": "a47f00ae00cd6e0e.mp3",
+    "text": "Jeg er klar",
+    "speaker": "fortaeller"
+  },
+  "spil.vaelg_soldat": {
+    "file": "c9b1334b80130ff9.mp3",
+    "text": "Tryk på en af dine soldater.",
+    "speaker": "fortaeller"
+  },
+  "spil.kan_ikke_flytte": {
+    "file": "dc835ba6c22364a9.mp3",
+    "text": "Den soldat kan ikke flytte sig.",
+    "speaker": "fortaeller"
+  },
+  "spil.opgiv": {
+    "file": "44cdd5d48d7f0c3a.mp3",
+    "text": "Giv op",
+    "speaker": "fortaeller"
+  },
+  "spil.menu": {
+    "file": "64db965553adabed.mp3",
+    "text": "Menu",
+    "speaker": "fortaeller"
+  },
+  "spil.fortsaet": {
+    "file": "23b98c2b8cd9ab00.mp3",
+    "text": "Fortsæt",
+    "speaker": "fortaeller"
+  },
+  "spil.centrer": {
+    "file": "90fcf18394526a49.mp3",
+    "text": "Vis hele brættet",
+    "speaker": "fortaeller"
+  },
+  "spil.ude_groen": {
+    "file": "b241ef28fd138ebe.mp3",
+    "text": "Den grønne hær er ude!",
+    "speaker": "sergent"
+  },
+  "spil.ude_sand": {
+    "file": "a48218b52fc5d169.mp3",
+    "text": "Den sandfarvede hær er ude!",
+    "speaker": "sergent"
+  },
+  "spil.ude_blaa": {
+    "file": "5dbaf69514aea7d5.mp3",
+    "text": "Den gråblå hær er ude!",
+    "speaker": "sergent"
+  },
+  "spil.ude_brun": {
+    "file": "f7b854e66a1147dc.mp3",
+    "text": "Den brune hær er ude!",
+    "speaker": "sergent"
+  },
+  "spil.du_er_ude": {
+    "file": "015b63fe73537435.mp3",
+    "text": "Din hær er ude! Vil du se med og finde ud af, hvem der vinder?",
+    "speaker": "sergent"
+  },
+  "spil.makker": {
+    "file": "8211a6e6020373d0.mp3",
+    "text": "Din makker er den sandfarvede hær. I kan se hinandens soldater!",
+    "speaker": "sergent"
+  },
+  "spil.se_med": {
+    "file": "983a1fe77cce57d6.mp3",
+    "text": "Se med",
+    "speaker": "fortaeller"
+  },
+  "tal.0": {
+    "file": "f730d865c4dbaf2d.mp3",
+    "text": "nul",
+    "speaker": "fortaeller"
+  },
+  "tal.1": {
+    "file": "4f225a171cbb2fb2.mp3",
+    "text": "en",
+    "speaker": "fortaeller"
+  },
+  "tal.2": {
+    "file": "4ab32287fd46e4bc.mp3",
+    "text": "to",
+    "speaker": "fortaeller"
+  },
+  "tal.3": {
+    "file": "6d845730b99c112c.mp3",
+    "text": "tre",
+    "speaker": "fortaeller"
+  },
+  "tal.4": {
+    "file": "e6678760f77fc634.mp3",
+    "text": "fire",
+    "speaker": "fortaeller"
+  },
+  "tal.5": {
+    "file": "dcb1478e9b1378f7.mp3",
+    "text": "fem",
+    "speaker": "fortaeller"
+  },
+  "tal.6": {
+    "file": "32c9e16402295eea.mp3",
+    "text": "seks",
+    "speaker": "fortaeller"
+  },
+  "tal.7": {
+    "file": "6eb135e1b8a7cda8.mp3",
+    "text": "syv",
+    "speaker": "fortaeller"
+  },
+  "tal.8": {
+    "file": "85a48c9c2f9d9c51.mp3",
+    "text": "otte",
+    "speaker": "fortaeller"
+  },
+  "tal.9": {
+    "file": "767f8450e9a572fd.mp3",
+    "text": "ni",
+    "speaker": "fortaeller"
+  },
+  "tutorial.velkommen": {
+    "file": "ae9b3f6e9cd496df.mp3",
+    "text": "Velkommen, soldat! Jeg er sergenten, og jeg viser dig, hvordan man spiller.",
+    "speaker": "sergent"
+  },
+  "tutorial.maal": {
+    "file": "22b51bbb2ddb20b7.mp3",
+    "text": "Målet er at finde og erobre fjendens flag – før fjenden tager dit.",
+    "speaker": "sergent"
+  },
+  "tutorial.dine": {
+    "file": "b116489fbc3a6b18.mp3",
+    "text": "Dine soldater er grønne. Tallet over dem viser, hvor stærke de er. Jo højere tal, jo stærkere.",
+    "speaker": "sergent"
+  },
+  "tutorial.fjender": {
+    "file": "aa52bf71898ea911.mp3",
+    "text": "Fjendens soldater står bag plastikskjolde. Du ved ikke, hvem de er, før I kæmper.",
+    "speaker": "sergent"
+  },
+  "tutorial.flyt": {
+    "file": "c25bdb50e5ec7b72.mp3",
+    "text": "Tryk på din kaptajn med sekstallet – og tryk så på det lysende felt foran ham.",
+    "speaker": "sergent"
+  },
+  "tutorial.flot_flyt": {
+    "file": "f1e3054f784f96bc.mp3",
+    "text": "Flot! Soldater går ét felt ad gangen – frem, tilbage eller til siden. Aldrig på skrå.",
+    "speaker": "sergent"
+  },
+  "tutorial.soeer": {
+    "file": "f8e5d142f5a2061a.mp3",
+    "text": "Ingen kan gå ud i søerne. Man må gå udenom!",
+    "speaker": "sergent"
+  },
+  "tutorial.spejder": {
+    "file": "cb837392c61f50d7.mp3",
+    "text": "Spejderen med totallet er speciel. Han kan løbe mange felter på én gang i en lige linje.",
+    "speaker": "sergent"
+  },
+  "tutorial.angrib": {
+    "file": "978f81aa08fabf12.mp3",
+    "text": "Nu skal vi kæmpe! Tryk på kaptajnen, og tryk så på fjendens skjold lige foran ham.",
+    "speaker": "sergent"
+  },
+  "tutorial.kamp_forklaring": {
+    "file": "964f6f93fbe284c7.mp3",
+    "text": "Når to soldater mødes, vinder den stærkeste. Er de lige stærke, dyster de i et minispil om, hvem der vinder!",
+    "speaker": "sergent"
+  },
+  "tutorial.miner": {
+    "file": "76fdf826d1fbe15b.mp3",
+    "text": "Pas på minerne! Den, der går på en mine, falder. Kun minøren kan desarmere den.",
+    "speaker": "sergent"
+  },
+  "tutorial.spion": {
+    "file": "14e0443830a45a11.mp3",
+    "text": "Spionen er den svageste soldat. Men hvis han angriber marskallen, vinder spionen!",
+    "speaker": "sergent"
+  },
+  "tutorial.flag": {
+    "file": "b1607404cec53e17.mp3",
+    "text": "Fjendens flag står lige derfremme. Gå frem med kaptajnen, og erobr det!",
+    "speaker": "sergent"
+  },
+  "tutorial.godt": {
+    "file": "93936ffc2862b22c.mp3",
+    "text": "Godt klaret, soldat! Nu er du klar til din første rigtige kamp.",
+    "speaker": "sergent"
+  },
+  "tutorial.igen": {
+    "file": "14501a3065128743.mp3",
+    "text": "Hov, det gik ikke helt efter planen. Lad os prøve igen!",
+    "speaker": "sergent"
+  },
+  "tutorial.videre": {
+    "file": "f0cd32b84264cf85.mp3",
+    "text": "Videre",
+    "speaker": "fortaeller"
+  },
+  "tutorial.spring_over": {
+    "file": "0382d16b22297916.mp3",
+    "text": "Spring over",
+    "speaker": "fortaeller"
+  },
+  "tutorial.proev_igen": {
+    "file": "74fc2a85bd083b3e.mp3",
+    "text": "Prøv igen",
+    "speaker": "fortaeller"
+  }
+}

@@ -2,8 +2,8 @@
 id: tal
 lines:
   - { id: '0', speaker: fortaeller, text: nul, say: Nul. }
-  - { id: '1', speaker: fortaeller, text: en, say: En. }
-  - { id: '2', speaker: fortaeller, text: to, say: To. }
+  - { id: '1', speaker: fortaeller, text: en, say: Én! }
+  - { id: '2', speaker: fortaeller, text: to, say: Tooo! }
   - { id: '3', speaker: fortaeller, text: tre, say: Tre. }
   - { id: '4', speaker: fortaeller, text: fire, say: Fire. }
   - { id: '5', speaker: fortaeller, text: fem, say: Fem. }
