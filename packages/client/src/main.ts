@@ -2,6 +2,7 @@ import '@fontsource/black-ops-one/400.css';
 import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/900.css';
 import './style.css';
+import { isRoomCode } from '@antego/shared';
 import { App } from './app.js';
 import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
@@ -53,7 +54,6 @@ async function boot() {
   };
   app = new App(ui, stage, presenter, kit);
   loading.remove();
-  app.menu();
   // ?debug exposes internals for screenshots and poking around in devtools.
   if (new URLSearchParams(location.search).has('debug')) {
     const layer = document.querySelector<HTMLElement>('.screen-layer')!;
@@ -66,6 +66,14 @@ async function boot() {
         rank: 'sergent',
       });
     Object.assign(window, { app, stage, presenter, kit, testMinigame });
+  }
+  // A shared link (?rum=1234) joins that game; a reload rejoins the game we were in.
+  const room = new URLSearchParams(location.search).get('rum');
+  if (room && isRoomCode(room)) {
+    history.replaceState(null, '', location.pathname);
+    void app.joinOnline(room);
+  } else if (!(await app.resumeOnline())) {
+    app.menu();
   }
 }
 

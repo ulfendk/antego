@@ -25,6 +25,12 @@ export type Listener = (view: GameView, events: GameEvent[]) => void;
 export interface Controller {
   readonly mode: 'ai' | 'hotseat' | 'online';
   subscribe(fn: Listener): void;
+  /** The latest view of the game for whoever is looking at this screen. */
+  view(): GameView;
+  /** Hot-seat hands the device over (null hides every rank); other modes ignore it. */
+  setViewer(team: Team | null): void;
+  /** Which army the person holding this device commands right now (null: nobody, e.g. spectating). */
+  me(view: GameView): Team | null;
   setup(team: Team, placement: Placement[]): void;
   move(team: Team, pieceId: string, to: Pos): void;
   resign(team: Team): void;
@@ -75,6 +81,14 @@ export class LocalController implements Controller {
 
   view(): GameView {
     return viewFor(this.state, this.viewer);
+  }
+
+  setViewer(team: Team | null) {
+    this.viewer = team;
+  }
+
+  me(view: GameView): Team {
+    return this.aiTeam ? (this.aiTeam === 'groen' ? 'brun' : 'groen') : view.turn;
   }
 
   setup(team: Team, placement: Placement[]) {

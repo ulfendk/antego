@@ -15,7 +15,9 @@ import {
   type Rank,
   type Team,
 } from '@antego/shared';
-import { LocalController } from './game/controller.js';
+import { renderSVG } from 'uqr';
+import { LocalController, type Controller } from './game/controller.js';
+import { OnlineController, OnlineError } from './net/online.js';
 import { runMinigame } from './minigames/runner.js';
 import type { LineId } from './generated/lines.js';
 import { updater } from './pwa/updater.js';
@@ -36,7 +38,8 @@ interface SetupState {
 }
 
 export class App {
-  private controller: LocalController | null = null;
+  private controller: Controller | null = null;
+  private opponentHere = false;
   private view: GameView | null = null;
   private setupState: SetupState | null = null;
   private selected: string | null = null;
@@ -63,13 +66,7 @@ export class App {
   }
 
   menu() {
-    updater.setSafe(true);
-    this.controller?.dispose();
-    this.controller = null;
-    this.setupState = null;
-    this.handingOver = false;
-    this.presenter.reset();
-    this.hud.replaceChildren();
+    this.leaveGame();
     this.show(
       h(
         'div',
@@ -78,6 +75,7 @@ export class App {
         line('menu.titel', 'h1', 'title'),
         button('menu.spil_computer', () => this.chooseDifficulty(), 'big', '🤖'),
         button('menu.spil_to', () => this.chooseMinigames('hotseat'), 'big', '👫'),
+        button('menu.spil_online', () => this.onlineMenu(), 'big', '🌍'),
         button('menu.indstillinger', () => this.settings(), 'small', '⚙️'),
       ),
     );
@@ -102,11 +100,12 @@ export class App {
     );
   }
 
-  private chooseMinigames(mode: 'ai' | 'hotseat', difficulty: Difficulty = 'mellem') {
+  private chooseMinigames(mode: 'ai' | 'hotseat' | 'online', difficulty: Difficulty = 'mellem') {
     const current = savedMinigames();
     const pick = (m: MinigameMode) => {
       saveMinigames(m);
-      this.newGame(mode, difficulty, m);
+      if (mode === 'online') void this.createOnline(m);
+      else this.newGame(mode, difficulty, m);
     };
     const opt = (m: MinigameMode, id: LineId, icon: string) =>
       button(id, () => pick(m), current === m ? 'big on' : 'big', icon);
@@ -186,7 +185,7 @@ export class App {
   private startSetup(team: Team) {
     const c = this.controller!;
     updater.setSafe(true);
-    c.viewer = team;
+    c.setViewer(team);
     this.setupState = { team, placement: presetPlacement(team, 'forsvar'), pick: null };
     void this.stage.setSide(team);
     this.renderSetup();
@@ -276,11 +275,17 @@ export class App {
     c.setup(s.team, s.placement);
     if (c.mode === 'hotseat' && s.team === 'groen') {
       this.handover('brun', () => this.startSetup('brun'));
+    } else if (c.mode === 'online' && this.view?.phase === 'setup') {
+      this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     }
   }
 
   private onView(view: GameView, events: GameEvent[]) {
     this.view = view;
+    if (this.controller?.mode === 'online' && view.phase === 'setup') {
+      this.onlineSetupStep();
+      return;
+    }
     // During setup the draft on screen wins; the hand-over screen re-presents explicitly.
     if (this.setupState || view.phase === 'setup') return;
     this.animating = true;
@@ -303,6 +308,7 @@ export class App {
     }
     if (view.phase !== 'play') return;
     updater.setSafe(false);
+    if (c.mode === 'online' && !this.inMinigame) this.show();
     const turnEvent = events.find((e) => e.type === 'turn');
     if (c.mode === 'hotseat' && turnEvent && !this.handingOver) {
       this.handover(view.turn, () => this.showTurn());
@@ -315,7 +321,7 @@ export class App {
   private handover(team: Team, then: () => void) {
     const c = this.controller!;
     this.handingOver = true;
-    c.viewer = null;
+    c.setViewer(null);
     void this.presenter.present(c.view(), []);
     void this.stage.setSide(team);
     this.hud.replaceChildren();
@@ -329,7 +335,7 @@ export class App {
           () => {
             this.handingOver = false;
             this.show();
-            c.viewer = team;
+            c.setViewer(team);
             this.view = c.view();
             void this.presenter.present(this.view, []);
             then();
@@ -344,15 +350,17 @@ export class App {
   private showTurn() {
     const c = this.controller!;
     const view = this.view!;
-    const mine = c.mode === 'ai' ? view.turn === 'groen' : true;
+    const mine = view.turn === c.me(view);
     const id: LineId =
-      c.mode === 'ai'
-        ? mine
-          ? 'spil.din_tur'
-          : 'spil.computer_tur'
-        : view.turn === 'groen'
+      c.mode === 'hotseat'
+        ? view.turn === 'groen'
           ? 'spil.tur_groen'
-          : 'spil.tur_brun';
+          : 'spil.tur_brun'
+        : mine
+          ? 'spil.din_tur'
+          : c.mode === 'ai'
+            ? 'spil.computer_tur'
+            : 'online.modstander_tur';
     this.hud.replaceChildren(
       h('div', { class: `turn ${view.turn}` }, line(id)),
       h(
@@ -370,7 +378,7 @@ export class App {
   private pause() {
     const c = this.controller;
     if (!c) return;
-    const me: Team = c.mode === 'ai' ? 'groen' : (this.view?.turn ?? 'groen');
+    const me: Team = (this.view && c.me(this.view)) ?? 'groen';
     this.show(
       h(
         'div',
@@ -394,14 +402,17 @@ export class App {
     updater.setSafe(true);
     const c = this.controller!;
     const winner = view.winner!;
+    const iWon = winner === c.me(view);
     const title: LineId =
-      c.mode === 'ai'
+      c.mode === 'hotseat'
         ? winner === 'groen'
-          ? 'slut.du_vandt'
-          : 'slut.du_tabte'
-        : winner === 'groen'
           ? 'slut.groen_vinder'
-          : 'slut.brun_vinder';
+          : 'slut.brun_vinder'
+        : iWon
+          ? 'slut.du_vandt'
+          : c.mode === 'ai'
+            ? 'slut.du_tabte'
+            : 'slut.modstander_vandt';
     const reason: LineId | null =
       view.winReason === 'flag'
         ? 'kamp.flag'
@@ -422,11 +433,199 @@ export class App {
         reason ? line(reason, 'p') : null,
         button(
           'slut.igen',
-          () => this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
+          () =>
+            mode === 'online'
+              ? this.onlineMenu()
+              : this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
           'big go',
           '🔁',
         ),
         button('slut.menu', () => this.menu(), '', '🏠'),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------- online
+
+  private onlineMenu() {
+    this.leaveGame();
+    this.show(
+      h(
+        'div',
+        { class: 'panel' },
+        line('online.titel', 'h2'),
+        button('online.opret', () => this.chooseMinigames('online'), 'big', '➕'),
+        button('online.deltag', () => this.keypad(), 'big', '🔢'),
+        button('menu.tilbage', () => this.menu(), 'small', '↩'),
+      ),
+    );
+  }
+
+  private leaveGame() {
+    this.controller?.dispose();
+    this.controller = null;
+    this.setupState = null;
+    this.handingOver = false;
+    this.inMinigame = false;
+    this.opponentHere = false;
+    this.presenter.reset();
+    this.hud.replaceChildren();
+    this.banner.replaceChildren();
+    updater.setSafe(true);
+  }
+
+  private async createOnline(minigames: MinigameMode) {
+    this.show(h('div', { class: 'panel' }, line('online.forbinder', 'h2')));
+    try {
+      this.attachOnline(await OnlineController.create({ minigames }));
+    } catch (err) {
+      this.onlineFailed(err);
+    }
+  }
+
+  async joinOnline(code: string) {
+    this.leaveGame();
+    this.show(h('div', { class: 'panel' }, line('online.forbinder', 'h2')));
+    try {
+      this.attachOnline(await OnlineController.join(code));
+    } catch (err) {
+      this.onlineFailed(err, true);
+    }
+  }
+
+  /** Back into a game after a reload. Returns false when there was nothing to resume. */
+  async resumeOnline(): Promise<boolean> {
+    const c = await OnlineController.resume();
+    if (!c) return false;
+    // The server tells us straight away whether the other player is still there.
+    this.attachOnline(c);
+    return true;
+  }
+
+  private onlineFailed(err: unknown, retryJoin = false) {
+    const reason = err instanceof OnlineError ? err.reason : 'offline';
+    const id: LineId =
+      reason === 'not-found'
+        ? 'online.ukendt_kode'
+        : reason === 'full'
+          ? 'online.fuld'
+          : reason === 'outdated'
+            ? 'online.forsinket'
+            : 'online.ingen_net';
+    this.show(
+      h(
+        'div',
+        { class: 'panel' },
+        line(id, 'h2'),
+        retryJoin ? button('online.deltag', () => this.keypad(), 'big', '🔢') : null,
+        button('menu.tilbage', () => this.onlineMenu(), 'small', '↩'),
+      ),
+    );
+  }
+
+  private attachOnline(c: OnlineController) {
+    this.controller = c;
+    this.view = null;
+    this.selected = null;
+    this.lastGame = null;
+    c.onOpponent = (connected) => {
+      const was = this.opponentHere;
+      this.opponentHere = connected;
+      if (this.view?.phase === 'setup') this.onlineSetupStep();
+      else if (was && !connected) toast(t('online.modstander_vaek'), 4000);
+      else if (!was && connected && this.view) toast(t('online.modstander_tilbage'));
+    };
+    c.onConnection = (online) => toast(t(online ? 'online.tilbage' : 'online.mistet'), 3000);
+    c.subscribe((view, events) => this.onView(view, events));
+  }
+
+  /** Online setup: wait for a friend, then stand up our army, then wait for theirs. */
+  private onlineSetupStep() {
+    const c = this.controller;
+    const view = this.view;
+    if (!(c instanceof OnlineController) || !view || this.setupState) return;
+    const me = c.team;
+    if (!me) return;
+    if (view.placed[me]) {
+      this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
+    } else if (this.opponentHere) {
+      toast(t(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_brun'));
+      this.startSetup(me);
+    } else {
+      this.waitingRoom(c.code);
+    }
+  }
+
+  private waitingRoom(code: string) {
+    updater.setSafe(true);
+    const url = `${location.origin}/?rum=${code}`;
+    const qr = h('div', { class: 'qr', 'aria-hidden': 'true' });
+    qr.innerHTML = renderSVG(url, { border: 1 });
+    this.show(
+      h(
+        'div',
+        { class: 'panel waiting' },
+        line('online.din_kode', 'h2'),
+        h(
+          'div',
+          { class: 'code' },
+          ...[...code].map((d) => h('span', { 'data-line': `tal.${d}` }, d)),
+        ),
+        qr,
+        line('online.vis_kode', 'p'),
+        line('online.venter', 'p', 'hint'),
+        button('menu.tilbage', () => this.onlineMenu(), 'small', '↩'),
+      ),
+    );
+  }
+
+  /** Big number pad: no keyboard needed to type a friend's code. */
+  private keypad() {
+    let code = '';
+    const boxes = [0, 1, 2, 3].map(() => h('span', { class: 'digit' }));
+    const go = button('online.forbind', () => void this.joinOnline(code), 'big go', '▶');
+    go.disabled = true;
+    const render = () => {
+      boxes.forEach((b, i) => (b.textContent = code[i] ?? ''));
+      go.disabled = code.length !== 4;
+    };
+    const key = (d: string) =>
+      h(
+        'button',
+        {
+          class: 'btn key',
+          'data-line': `tal.${d}`,
+          onclick: () => {
+            if (code.length < 4) code += d;
+            render();
+          },
+        },
+        d,
+      );
+    const del = button(
+      'online.slet',
+      () => {
+        code = code.slice(0, -1);
+        render();
+      },
+      'key small',
+      '⌫',
+    );
+    this.show(
+      h(
+        'div',
+        { class: 'panel keypad' },
+        line('online.skriv_kode', 'h2'),
+        h('div', { class: 'code' }, ...boxes),
+        h(
+          'div',
+          { class: 'keys' },
+          ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(key),
+          del,
+          key('0'),
+        ),
+        go,
+        button('menu.tilbage', () => this.onlineMenu(), 'small', '↩'),
       ),
     );
   }
@@ -545,8 +744,8 @@ export class App {
     const c = this.controller;
     const view = this.view;
     if (!c || !view || this.animating || this.handingOver || view.phase !== 'play') return;
-    const me: Team = c.mode === 'ai' ? 'groen' : view.turn;
-    if (view.turn !== me) return;
+    const me = c.me(view);
+    if (!me || view.turn !== me) return;
     const piece = pieceAt(view.pieces, sq);
     if (piece && piece.team === me) {
       const targets = legalTargets(view.pieces, view.history, piece);

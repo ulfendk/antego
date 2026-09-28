@@ -4,8 +4,8 @@ Myresoldater og Stratego i en god blanding: et 3D-brætspil for børn (6–10 å
 
 A Danish 3D board game for kids in the spirit of Stratego, with Toy Story-style green army men. It runs as a PWA from one self-hosted Docker image.
 
-- **Modes:** against the computer (three levels), two players on one screen, and (coming) online via room codes.
-- **Rules:** classic Stratego (10×10, 40 pieces each). Close fights will be decided by short mini-games, with a head start for the stronger soldier.
+- **Modes:** against the computer (three levels), two players on one screen, and online with a 4-digit room code (or QR / `?rum=1234` link).
+- **Rules:** classic Stratego (10×10, 40 pieces each). Close fights are decided by short 3D mini-games (Stormløb, Korkskud, Faldskærm), with a head start for the stronger soldier.
 - **Look:** soldiers sculpted in code with Blender, soft plastic shading, a printed folding cardboard board on a wooden table.
 
 ## Structure
@@ -22,7 +22,7 @@ A Danish 3D board game for kids in the spirit of Stratego, with Toy Story-style 
 
 ```sh
 npm install
-npm run dev        # server on :2567 + Vite on :5173
+npm run dev        # server on :2567 + Vite on :5173 (VITE_SERVER_PORT=… if 2567 is taken)
 npm test           # vitest (engine, AI, game room)
 npm run lint && npm run typecheck
 npm run models -- --preview   # rebuild models (needs Docker); previews in tools/models/.cache

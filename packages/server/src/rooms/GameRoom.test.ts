@@ -89,6 +89,35 @@ describe('GameRoom', () => {
     await guest.leave();
   });
 
+  it('settles an online battle once both players report their mini-game score', async () => {
+    const a = new Client(`ws://127.0.0.1:${PORT}`);
+    const b = new Client(`ws://127.0.0.1:${PORT}`);
+    const host = await a.create(ROOM_GAME, {
+      protocol: PROTOCOL_VERSION,
+      options: { minigames: 'altid' },
+    });
+    const hostBox = track(host);
+    const guest = await b.joinById(host.roomId, { protocol: PROTOCOL_VERSION });
+    const guestBox = track(guest);
+    host.send('setup', { placement: presetPlacement('groen', 'forsvar') });
+    guest.send('setup', { placement: presetPlacement('brun', 'angreb') });
+    const hv = await until(hostBox, (v) => v.phase === 'play');
+    const scout = hv.pieces.find((p) => p.team === 'groen' && p.rank === 'spejder' && p.y === 6)!;
+    const target = hv.pieces
+      .filter((p) => p.team === 'brun' && p.x === scout.x)
+      .sort((p, q) => q.y - p.y)[0]!;
+    host.send('move', { pieceId: scout.id, to: { x: target.x, y: target.y } });
+    const battle = await until(guestBox, (v) => v.phase === 'battle');
+    expect(battle.pendingBattle?.seed).toBeTypeOf('number');
+    host.send('minigameScore', { score: 100 });
+    guest.send('minigameScore', { score: 0 });
+    const after = await until(hostBox, (v) => v.phase === 'play' && v.turn === 'brun');
+    // Green won the mini-game, so the brown defender fell.
+    expect(after.fallen.map((p) => p.team)).toEqual(['brun']);
+    await host.leave();
+    await guest.leave();
+  });
+
   it('refuses a third player', async () => {
     const [a, b, c] = [0, 1, 2].map(() => new Client(`ws://127.0.0.1:${PORT}`));
     const host = await a!.create(ROOM_GAME, { protocol: PROTOCOL_VERSION });

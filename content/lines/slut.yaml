@@ -24,3 +24,6 @@ lines:
   - id: menu
     speaker: fortaeller
     text: Til menuen
+  - id: modstander_vandt
+    speaker: sergent
+    text: Modstanderen vandt denne gang. Godt kæmpet!

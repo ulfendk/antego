@@ -1,0 +1,68 @@
+id: online
+lines:
+  - id: titel
+    speaker: fortaeller
+    text: Spil online
+  - id: opret
+    speaker: fortaeller
+    text: Start et nyt spil
+  - id: deltag
+    speaker: fortaeller
+    text: Deltag med en kode
+  - id: din_kode
+    speaker: fortaeller
+    text: Jeres kode er
+  - id: vis_kode
+    speaker: fortaeller
+    text: Sig koden til din ven – eller lad dem scanne den.
+  - id: venter
+    speaker: fortaeller
+    text: Venter på en modstander …
+  - id: skriv_kode
+    speaker: fortaeller
+    text: Skriv koden fra din ven.
+  - id: slet
+    speaker: fortaeller
+    text: Slet
+  - id: forbind
+    speaker: fortaeller
+    text: Forbind
+  - id: forbinder
+    speaker: fortaeller
+    text: Forbinder …
+  - id: ukendt_kode
+    speaker: fortaeller
+    text: Den kode findes ikke. Prøv igen.
+  - id: fuld
+    speaker: fortaeller
+    text: Det spil er allerede fyldt.
+  - id: ingen_net
+    speaker: fortaeller
+    text: Der er ingen forbindelse. Prøv igen om lidt.
+  - id: forsinket
+    speaker: fortaeller
+    text: Spillet bliver opdateret. Prøv igen om et øjeblik.
+  - id: du_er_groen
+    speaker: groen
+    text: Du fører den grønne hær.
+  - id: du_er_brun
+    speaker: brun
+    text: Du fører den brune hær.
+  - id: venter_opstilling
+    speaker: fortaeller
+    text: Venter på, at modstanderen stiller op …
+  - id: modstander_tur
+    speaker: fortaeller
+    text: Modstanderen tænker …
+  - id: modstander_vaek
+    speaker: fortaeller
+    text: Modstanderen har mistet forbindelsen. Vi venter lidt …
+  - id: modstander_tilbage
+    speaker: fortaeller
+    text: Modstanderen er tilbage!
+  - id: mistet
+    speaker: fortaeller
+    text: Forbindelsen blev afbrudt. Vi prøver igen …
+  - id: tilbage
+    speaker: fortaeller
+    text: Forbindelsen er tilbage!

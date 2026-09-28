@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { linesPlugin } from './build/lines.js';
 
-const SERVER = 'http://localhost:2567';
+const SERVER = `http://localhost:${process.env.VITE_SERVER_PORT ?? 2567}`;
 const content = resolve(__dirname, '../../content');
 
 export default defineConfig({
