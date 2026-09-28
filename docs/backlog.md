@@ -17,9 +17,8 @@ Little non-gameplay surprises around the board:
 
 ## 3–4 players
 
-- Local play on the plus-shaped "kryds" board (24 pieces per army): board print, toy boxes in the cut-away corners, turn bar, knock-out animation, hot-seat hand-over for N armies.
 - Online 3–4 player rooms: seats, computer players filling empty seats, lobby.
-- Team mode (2 against 2) and whether partners see each other's ranks.
+- Team mode online (it works on one device already).
 - Voice lines for the grey-blue and brown armies and for knock-outs.
 
 ## Robustness and checks

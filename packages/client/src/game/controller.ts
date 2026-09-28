@@ -61,9 +61,10 @@ export class LocalController implements Controller {
     options: Partial<GameOptions>,
     private difficulty: Difficulty = 'mellem',
     players: 2 | 3 | 4 = 2,
+    hold = false,
   ) {
     const board = players > 2 ? 'kryds' : 'klassisk';
-    this.state = createGame(randomSeed(), options, { board, players });
+    this.state = createGame(randomSeed(), options, { board, players, hold });
     this.aiTeams = mode === 'ai' ? this.state.teams.filter((t) => t !== 'groen') : [];
     this.viewer = 'groen';
     for (const team of this.aiTeams) {

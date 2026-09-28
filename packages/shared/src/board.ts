@@ -146,6 +146,8 @@ export function legalTargets(
   history: readonly MoveRecord[],
   piece: PieceView,
   board: BoardSpec = KLASSISK,
+  /** Armies on this piece's side: they block like its own and can't be attacked. */
+  friends: readonly Team[] = [piece.team],
 ): Pos[] {
   if (!piece.rank || !RANKS[piece.rank].movable) return [];
   const range = piece.rank === 'spejder' ? board.size : 1;
@@ -155,7 +157,7 @@ export function legalTargets(
       const p = { x: piece.x + d.x * step, y: piece.y + d.y * step };
       if (!inBounds(p, board) || isLake(p, board)) break;
       const occupant = pieceAt(pieces, p);
-      if (occupant?.team === piece.team) break;
+      if (occupant && friends.includes(occupant.team)) break;
       if (!isShuttleBlocked(history, piece, p)) out.push(p);
       if (occupant) break; // can attack, but not jump past
     }
@@ -189,6 +191,9 @@ export function hasAnyMove(
   history: readonly MoveRecord[],
   team: Team,
   board: BoardSpec = KLASSISK,
+  friends: readonly Team[] = [team],
 ): boolean {
-  return pieces.some((p) => p.team === team && legalTargets(pieces, history, p, board).length > 0);
+  return pieces.some(
+    (p) => p.team === team && legalTargets(pieces, history, p, board, friends).length > 0,
+  );
 }

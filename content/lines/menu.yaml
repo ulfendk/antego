@@ -39,6 +39,15 @@ lines:
   - id: fire_haere
     speaker: fortaeller
     text: Fire hære
+  - id: hold_spoerg
+    speaker: fortaeller
+    text: Skal I spille alle mod alle – eller to mod to?
+  - id: alle_mod_alle
+    speaker: fortaeller
+    text: Alle mod alle
+  - id: to_mod_to
+    speaker: fortaeller
+    text: To mod to
   - id: minispil
     speaker: fortaeller
     text: Skal lige stærke soldater dyste i et minispil?

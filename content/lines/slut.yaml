@@ -12,6 +12,12 @@ lines:
   - id: brun_vinder
     speaker: brun
     text: Den brune hær vinder!
+  - id: hold_groen
+    speaker: sergent
+    text: Den grønne og den sandfarvede hær vinder sammen!
+  - id: hold_blaa
+    speaker: sergent
+    text: Den gråblå og den brune hær vinder sammen!
   - id: du_vandt
     speaker: sergent
     text: Du vandt! Godt kæmpet, soldat!

@@ -66,6 +66,9 @@ lines:
   - id: du_er_ude
     speaker: sergent
     text: Din hær er ude! Vil du se med og finde ud af, hvem der vinder?
+  - id: makker
+    speaker: sergent
+    text: Din makker er den sandfarvede hær. I kan se hinandens soldater!
   - id: se_med
     speaker: fortaeller
     text: Se med

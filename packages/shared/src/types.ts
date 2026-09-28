@@ -8,6 +8,19 @@ export const TEAMS: readonly Team[] = ['groen', 'sand', 'blaa', 'brun'];
 export const other = (t: Team): Team => (t === 'groen' ? 'sand' : 'groen');
 
 export type BoardId = 'klassisk' | 'kryds';
+
+/** Team mode partners: the armies sitting opposite each other. */
+export const PARTNER: Record<Team, Team> = {
+  groen: 'sand',
+  sand: 'groen',
+  blaa: 'brun',
+  brun: 'blaa',
+};
+
+/** The armies on the same side as `team` (itself, plus its partner in team mode). */
+export function side(team: Team, hold: boolean): Team[] {
+  return hold ? [team, PARTNER[team]] : [team];
+}
 /** Classic 40-piece army, or the quicker 24-piece army used on the 3–4 player board. */
 export type ArmyId = 'klassisk' | 'lille';
 
@@ -131,6 +144,8 @@ export interface GameState {
   teams: Team[];
   /** Armies that are out (flag taken, no moves left, or gave up). */
   out: Team[];
+  /** Team mode (4 armies, 2 against 2): partners sit opposite each other. */
+  hold: boolean;
   seed: number;
   battleCount: number;
   turn: Team;
@@ -141,6 +156,8 @@ export interface GameState {
   history: MoveRecord[];
   pendingBattle: PendingBattle | null;
   winner: Team | null;
+  /** Everyone who won: one army, or both partners in team mode. */
+  winners: Team[];
   winReason: WinReason | null;
 }
 
@@ -181,7 +198,7 @@ export type GameEvent =
   | { type: 'turn'; team: Team }
   /** An army is knocked out while others play on (3–4 players). */
   | { type: 'out'; team: Team; reason: WinReason; removed: string[] }
-  | { type: 'over'; winner: Team; reason: WinReason };
+  | { type: 'over'; winner: Team; winners: Team[]; reason: WinReason };
 
 export type BattleReason =
   'flag' | 'mine' | 'mine-desarmeret' | 'spion' | 'staerkere' | 'lige' | 'minispil';

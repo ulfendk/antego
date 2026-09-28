@@ -1,5 +1,13 @@
 import * as THREE from 'three';
-import type { GameEvent, GameView, PieceView, Pos, Rank, Team } from '@antego/shared';
+import {
+  side,
+  type GameEvent,
+  type GameView,
+  type PieceView,
+  type Pos,
+  type Rank,
+  type Team,
+} from '@antego/shared';
 import { BOARD_TOP, squareToWorld } from './board.js';
 import { PieceKit, PieceObject } from './pieces.js';
 import { sfx } from '../audio/sfx.js';
@@ -78,6 +86,7 @@ export class Presenter {
 
   private async run(view: GameView, events: GameEvent[]) {
     this.viewer = view.viewer;
+    this.friends = view.viewer ? side(view.viewer, view.hold) : [];
     for (const e of events) await this.animate(e, view);
     this.sync(view);
   }
@@ -85,6 +94,7 @@ export class Presenter {
   /** Instantly match the view (used on join/reconnect and after animations). */
   sync(view: GameView) {
     this.viewer = view.viewer;
+    this.friends = view.viewer ? side(view.viewer, view.hold) : [];
     const seen = new Set<string>();
     for (const p of view.pieces) {
       seen.add(p.id);
@@ -120,9 +130,12 @@ export class Presenter {
     }
   }
 
+  /** Badges on our own soldiers – and on our partner's in team mode. */
   private badgeFor(p: PieceView) {
-    return this.showBadges && p.team === this.viewer && p.rank !== null;
+    return this.showBadges && !!this.viewer && this.friends.includes(p.team) && p.rank !== null;
   }
+
+  private friends: Team[] = [];
 
   private ensure(p: PieceView) {
     let obj = this.pieces.get(p.id);

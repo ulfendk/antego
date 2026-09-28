@@ -3,6 +3,7 @@ import { BOARDS, legalTargets, pieceAt } from './board.js';
 import { createRng } from './rng.js';
 import {
   RANKS,
+  side,
   type GameView,
   type MinigameMode,
   type PieceView,
@@ -42,14 +43,15 @@ const NOISE: Record<Difficulty, number> = { let: 12, mellem: 5, svaer: 1.5 };
 export function chooseAiMove(view: GameView, difficulty: Difficulty, seed: number): AiMove | null {
   const me = view.turn;
   const rng = createRng(seed);
+  const friends = side(me, view.hold);
   const mine = view.pieces.filter((p) => p.team === me);
-  const enemies = view.pieces.filter((p) => p.team !== me);
+  const enemies = view.pieces.filter((p) => !friends.includes(p.team));
   const knownStrong = enemies.filter((e) => e.rank && RANKS[e.rank].movable);
 
   let best: AiMove | null = null;
   let bestScore = -Infinity;
   for (const piece of mine) {
-    for (const to of legalTargets(view.pieces, view.history, piece, BOARDS[view.board])) {
+    for (const to of legalTargets(view.pieces, view.history, piece, BOARDS[view.board], friends)) {
       let score = scoreMove(view, piece, to, knownStrong, view.options.minigames);
       score += (rng() - 0.5) * 2 * NOISE[difficulty];
       if (score > bestScore) {
@@ -86,8 +88,9 @@ function scoreMove(
     }
     // Head for the nearest enemy soldier that isn't known to be stronger (on a big board the
     // armies would otherwise wander past each other).
+    const friends = side(piece.team, view.hold);
     const prey = view.pieces.filter(
-      (e) => e.team !== piece.team && !(e.rank && RANKS[e.rank].movable && beats(e.rank, rank)),
+      (e) => !friends.includes(e.team) && !(e.rank && RANKS[e.rank].movable && beats(e.rank, rank)),
     );
     if (prey.length) {
       const dist = (p: Pos) =>

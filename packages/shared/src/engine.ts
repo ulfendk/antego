@@ -17,6 +17,7 @@ import {
   type Pos,
   type Team,
   type WinReason,
+  side,
 } from './types.js';
 
 const HISTORY_LENGTH = 16;
@@ -35,6 +36,8 @@ export interface GameSetup {
   /** Classic 10×10 for two; the plus-shaped "kryds" board for three or four. */
   board?: BoardId;
   players?: 2 | 3 | 4;
+  /** Team mode: 2 against 2 (needs four armies). */
+  hold?: boolean;
 }
 
 export function createGame(
@@ -50,6 +53,7 @@ export function createGame(
     board,
     teams,
     out: [],
+    hold: !!setup.hold && teams.length === 4,
     seed: seed >>> 0,
     battleCount: 0,
     turn: teams[0]!,
@@ -60,6 +64,7 @@ export function createGame(
     history: [],
     pendingBattle: null,
     winner: null,
+    winners: [],
     winReason: null,
   };
 }
@@ -123,9 +128,13 @@ function doMove(state: GameState, events: GameEvent[], team: Team, pieceId: stri
   const piece = state.pieces.find((p) => p.id === pieceId);
   if (!piece || piece.team !== team) throw new RuleError('ukendt brik');
   if (
-    !legalTargets(state.pieces, state.history, piece, BOARDS[state.board]).some((t) =>
-      samePos(t, to),
-    )
+    !legalTargets(
+      state.pieces,
+      state.history,
+      piece,
+      BOARDS[state.board],
+      side(team, state.hold),
+    ).some((t) => samePos(t, to))
   ) {
     throw new RuleError('ulovligt træk');
   }
@@ -245,7 +254,8 @@ function endTurn(state: GameState, events: GameEvent[]) {
     i = (i + 1) % state.teams.length;
     const team = state.teams[i]!;
     if (state.out.includes(team)) continue;
-    if (team !== state.turn && !hasAnyMove(state.pieces, state.history, team, board)) {
+    const friends = side(team, state.hold);
+    if (team !== state.turn && !hasAnyMove(state.pieces, state.history, team, board, friends)) {
       if (knockOut(state, events, team, 'ingen-traek')) return;
       continue;
     }
@@ -263,8 +273,11 @@ function endTurn(state: GameState, events: GameEvent[]) {
 function knockOut(state: GameState, events: GameEvent[], team: Team, reason: WinReason): boolean {
   if (!state.out.includes(team)) state.out.push(team);
   const active = state.teams.filter((t) => !state.out.includes(t));
-  if (active.length <= 1) {
-    finish(state, events, active[0] ?? team, reason);
+  // Over when everyone left is on one side (one army, or two partners in team mode).
+  const first = active[0] ?? team;
+  const winners = side(first, state.hold).filter((t) => state.teams.includes(t));
+  if (active.every((t) => winners.includes(t))) {
+    finish(state, events, first, reason, winners);
     return true;
   }
   const removed = state.pieces.filter((p) => p.team === team);
@@ -276,21 +289,32 @@ function knockOut(state: GameState, events: GameEvent[], team: Team, reason: Win
   return false;
 }
 
-function finish(state: GameState, events: GameEvent[], winner: Team, reason: WinReason) {
+function finish(
+  state: GameState,
+  events: GameEvent[],
+  winner: Team,
+  reason: WinReason,
+  winners: Team[] = [winner],
+) {
   state.phase = 'over';
   state.pendingBattle = null;
   state.winner = winner;
+  state.winners = winners;
   state.winReason = reason;
   // At the end everything is shown.
   for (const p of state.pieces) p.revealed = true;
-  events.push({ type: 'over', winner, reason });
+  events.push({ type: 'over', winner, winners, reason });
 }
 
-/** What one team is allowed to see: enemy ranks stay hidden until revealed (or the game is over). */
+/**
+ * What one team is allowed to see: enemy ranks stay hidden until revealed (or the game is
+ * over). In team mode partners see each other's ranks.
+ */
 export function viewFor(state: GameState, viewer: Team | null): GameView {
+  const own = viewer ? side(viewer, state.hold) : [];
   const hide = (p: Piece) => ({
     ...p,
-    rank: p.revealed || p.team === viewer || state.phase === 'over' ? p.rank : null,
+    rank: p.revealed || own.includes(p.team) || state.phase === 'over' ? p.rank : null,
   });
   return {
     ...clone(state),

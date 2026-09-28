@@ -1,6 +1,7 @@
 import {
   BOARDS,
   legalTargets,
+  side,
   pieceAt,
   presetPlacement,
   randomPlacement,
@@ -116,7 +117,8 @@ export class App {
 
   /** Two armies play classic Stratego; three or four play on the plus-shaped board. */
   private choosePlayers(mode: 'ai' | 'hotseat', difficulty: Difficulty = 'mellem') {
-    const pick = (n: 2 | 3 | 4) => this.chooseMinigames(mode, difficulty, n);
+    const pick = (n: 2 | 3 | 4) =>
+      n === 4 ? this.chooseTeams(mode, difficulty) : this.chooseMinigames(mode, difficulty, n);
     this.show(
       h(
         'div',
@@ -134,16 +136,45 @@ export class App {
     );
   }
 
+  /** Four armies: everyone for themselves, or two against two (partners sit opposite). */
+  private chooseTeams(mode: 'ai' | 'hotseat', difficulty: Difficulty) {
+    this.show(
+      h(
+        'div',
+        { class: 'panel' },
+        line('menu.hold_spoerg', 'h2'),
+        h(
+          'div',
+          { class: 'col' },
+          button(
+            'menu.alle_mod_alle',
+            () => this.chooseMinigames(mode, difficulty, 4, false),
+            'big',
+            '⚔️',
+          ),
+          button(
+            'menu.to_mod_to',
+            () => this.chooseMinigames(mode, difficulty, 4, true),
+            'big',
+            '🤝',
+          ),
+        ),
+        button('menu.tilbage', () => this.menu(), 'small', '↩'),
+      ),
+    );
+  }
+
   private chooseMinigames(
     mode: 'ai' | 'hotseat' | 'online',
     difficulty: Difficulty = 'mellem',
     players: 2 | 3 | 4 = 2,
+    hold = false,
   ) {
     const current = savedMinigames();
     const pick = (m: MinigameMode) => {
       saveMinigames(m);
       if (mode === 'online') void this.createOnline(m);
-      else this.newGame(mode, difficulty, m, players);
+      else this.newGame(mode, difficulty, m, players, hold);
     };
     const opt = (m: MinigameMode, id: LineId, icon: string) =>
       button(id, () => pick(m), current === m ? 'big on' : 'big', icon);
@@ -239,15 +270,16 @@ export class App {
     difficulty: Difficulty = 'mellem',
     minigames: MinigameMode = savedMinigames(),
     players: 2 | 3 | 4 = 2,
+    hold = false,
   ) {
     this.controller?.dispose();
     this.presenter.reset();
     this.handingOver = false;
     this.inMinigame = false;
     this.banner.replaceChildren();
-    this.lastGame = { mode, difficulty, minigames, players };
+    this.lastGame = { mode, difficulty, minigames, players, hold };
     this.world.use(players > 2 ? 'kryds' : 'klassisk');
-    const c = new LocalController(mode, { minigames }, difficulty, players);
+    const c = new LocalController(mode, { minigames }, difficulty, players, hold);
     this.controller = c;
     this.view = null;
     this.selected = null;
@@ -387,6 +419,9 @@ export class App {
     if (view.phase !== 'play') return;
     updater.setSafe(false);
     const me = c.me(view);
+    if (c.mode === 'ai' && view.hold && events.some((e) => e.type === 'started')) {
+      toast('spil.makker', 4500);
+    }
     if (c.mode === 'ai' && me && events.some((e) => e.type === 'out' && e.team === me)) {
       this.show(
         h(
@@ -516,11 +551,14 @@ export class App {
     updater.setSafe(true);
     const c = this.controller!;
     const winner = view.winner!;
-    const iWon = winner === c.me(view);
+    const me = c.me(view);
+    const iWon = !!me && view.winners.includes(me);
     sfx.play(c.mode === 'hotseat' || iWon ? 'victory' : 'sad', 300);
     const title: LineId =
       c.mode === 'hotseat'
-        ? (`slut.${winner}_vinder` as LineId)
+        ? view.hold
+          ? (`slut.hold_${view.winners.includes('groen') ? 'groen' : 'blaa'}` as LineId)
+          : (`slut.${winner}_vinder` as LineId)
         : iWon
           ? 'slut.du_vandt'
           : c.mode === 'ai'
@@ -556,6 +594,7 @@ export class App {
                     this.lastGame?.difficulty,
                     this.lastGame?.minigames,
                     this.lastGame?.players,
+                    this.lastGame?.hold,
                   ),
           'big go',
           '🔁',
@@ -787,6 +826,7 @@ export class App {
     difficulty: Difficulty;
     minigames: MinigameMode;
     players: 2 | 3 | 4;
+    hold: boolean;
   } | null = null;
 
   /** A close fight: everyone on this device plays the battle's mini-game in turn. */
@@ -904,7 +944,13 @@ export class App {
     if (!me || view.turn !== me) return;
     const piece = pieceAt(view.pieces, sq);
     if (piece && piece.team === me) {
-      const targets = legalTargets(view.pieces, view.history, piece, BOARDS[view.board]);
+      const targets = legalTargets(
+        view.pieces,
+        view.history,
+        piece,
+        BOARDS[view.board],
+        side(me, view.hold),
+      );
       if (!targets.length) toast('spil.kan_ikke_flytte', 2000);
       else if (piece.rank)
         toast([rankLine(piece.rank), rankInfo(piece.rank)], 2500, insignia(piece.rank));
@@ -915,7 +961,9 @@ export class App {
     const sel = this.selected ? view.pieces.find((p) => p.id === this.selected) : null;
     if (
       sel &&
-      legalTargets(view.pieces, view.history, sel, BOARDS[view.board]).some((p) => samePos(p, sq))
+      legalTargets(view.pieces, view.history, sel, BOARDS[view.board], side(me, view.hold)).some(
+        (p) => samePos(p, sq),
+      )
     ) {
       this.selected = null;
       c.move(me, sel.id, sq);
