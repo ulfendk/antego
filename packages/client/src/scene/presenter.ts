@@ -365,7 +365,7 @@ export class Presenter {
     const dist = a.distanceTo(b);
     const rocks = Math.max(2, Math.round(dist * 2));
     // Unhurried steps; a scout's long run speeds up a little so it doesn't drag.
-    const dur = Math.max(160, 250 - rocks * 6);
+    const dur = Math.max(230, 340 - rocks * 6);
     const rig = obj.rig;
     obj.body.position.y = 0;
     obj.body.rotation.x = 0;
