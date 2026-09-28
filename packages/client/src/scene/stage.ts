@@ -83,6 +83,9 @@ export class Stage {
     this.resize();
     this.setSide('groen', false);
     addEventListener('resize', () => this.resize());
+    // iOS changes the viewport in steps (rotation, toolbars); also check every frame in frame().
+    visualViewport?.addEventListener('resize', () => this.resize());
+    addEventListener('orientationchange', () => setTimeout(() => this.resize(), 250));
     this.renderer.setAnimationLoop(() => this.frame());
     // Hidden tabs get no animation frames; keep animations (and so the game flow) moving anyway.
     setInterval(() => {
@@ -173,52 +176,96 @@ export class Stage {
     this.composer = composer;
   }
 
+  private size = { w: 0, h: 0 };
+  private focused = false;
+
   resize() {
-    const w = this.canvas.clientWidth || innerWidth;
-    const h = this.canvas.clientHeight || innerHeight;
+    const r = this.canvas.getBoundingClientRect();
+    const w = Math.round(r.width || innerWidth);
+    const h = Math.round(r.height || innerHeight);
+    if (w === this.size.w && h === this.size.h) return;
+    this.size = { w, h };
     this.renderer.setSize(w, h, false);
     this.composer?.setSize(w, h);
     this.camera.aspect = w / h;
     this.portrait = w / h < 0.9;
-    // Keep the whole board in view: portrait phones need a higher, steeper camera.
-    this.camera.fov = this.portrait ? 44 : 36;
+    this.camera.fov = this.portrait ? 50 : 38;
     this.camera.updateProjectionMatrix();
     this.fitOverride();
+    // Re-frame the board for the new shape (unless we're zoomed in on a move).
+    if (!this.focused && !this.flying) this.setSide(this.side, false);
   }
 
-  /** Swing the camera round to an army's side of the table. */
-  setSide(team: Team, animate = true) {
-    this.side = team;
+  /** Where the camera sits for an army: angles from the screen shape, distance so the board fits. */
+  private framing(team: Team) {
     const az = VIEW[team].azimuth;
-    const polar = this.portrait ? 0.42 : 0.72;
-    const dist = this.portrait ? 19 / Math.max(this.camera.aspect, 0.45) ** 0.35 : 17;
-    this.controls.minAzimuthAngle = az - 1.1;
-    this.controls.maxAzimuthAngle = az + 1.1;
-    // Aim a little towards the player so the board sits above the bottom toolbar.
-    const target = new THREE.Vector3(0, 0, team === 'groen' ? 1.3 : -1.3);
-    const end = new THREE.Vector3().setFromSphericalCoords(dist, polar, az).add(target);
-    if (!animate) {
-      this.camera.position.copy(end);
-      this.controls.target.copy(target);
-      this.controls.update();
-      return Promise.resolve();
+    // Portrait phones look down more steeply; landscape gets the classic table view.
+    const polar = this.portrait ? 0.36 : 0.78;
+    const toward = team === 'groen' ? 1 : -1;
+    // Try aiming at different points along the player's axis and keep the one that shows the
+    // board biggest (closest camera) while everything still fits.
+    let best = { target: new THREE.Vector3(), dist: Infinity };
+    for (let shift = 0; shift <= 4; shift += 0.25) {
+      const target = new THREE.Vector3(0, 0, toward * shift);
+      const dist = this.fitDistance(target, polar, az);
+      if (dist < best.dist - 1e-3) best = { target, dist };
     }
-    const start = this.camera.position.clone();
+    return { target: best.target, polar, az, dist: best.dist };
+  }
+
+  /**
+   * Smallest camera distance at which the board (and the soldiers on its edge) is on screen,
+   * leaving room at the top for the turn pill and at the bottom for toolbars. Narrow portrait
+   * screens fit the playing squares (not the printed margin) and keep clear of the bottom
+   * toolbar area.
+   */
+  private fitDistance(target: THREE.Vector3, polar: number, az: number) {
+    const cam = this.camera.clone();
+    const e = this.portrait ? 5.25 : 5.7;
+    // Keep ~72 px at the top free for the turn pill and menu button, whatever the screen height.
+    const top = 1 - 2 * Math.min(0.22, 72 / Math.max(1, this.size.h));
+    const bottom = this.portrait ? -0.3 : -0.8;
+    const pts: THREE.Vector3[] = [];
+    for (const x of [-e, e])
+      for (const z of [-e, e]) for (const y of [0, 1.1]) pts.push(new THREE.Vector3(x, y, z));
+    const fits = (d: number) => {
+      cam.position.setFromSphericalCoords(d, polar, az).add(target);
+      cam.lookAt(target);
+      cam.updateMatrixWorld();
+      return pts.every((p) => {
+        const v = p.clone().project(cam);
+        return Math.abs(v.x) < 0.985 && v.y > bottom && v.y < top && v.z < 1;
+      });
+    };
+    let lo = 4;
+    let hi = 80;
+    for (let i = 0; i < 22; i++) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  }
+
+  private flying = false;
+
+  /** Smoothly move the camera to look at `target` from the given spherical position. */
+  private flyTo(target: THREE.Vector3, end: THREE.Spherical, ms: number) {
     const t0 = this.controls.target.clone();
-    const s0 = new THREE.Spherical().setFromVector3(start.clone().sub(t0));
-    const s1 = new THREE.Spherical().setFromVector3(end.clone().sub(target));
-    let dTheta = s1.theta - s0.theta;
+    const s0 = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(t0));
+    let dTheta = end.theta - s0.theta;
     if (dTheta > Math.PI) dTheta -= Math.PI * 2;
     if (dTheta < -Math.PI) dTheta += Math.PI * 2;
-    // Unlock azimuth limits while swinging around.
+    this.flying = true;
+    this.controls.enabled = false;
     this.controls.minAzimuthAngle = -Infinity;
     this.controls.maxAzimuthAngle = Infinity;
     return tween(
-      1100,
+      ms,
       (k) => {
         const s = new THREE.Spherical(
-          s0.radius + (s1.radius - s0.radius) * k,
-          s0.phi + (s1.phi - s0.phi) * k,
+          s0.radius + (end.radius - s0.radius) * k,
+          s0.phi + (end.phi - s0.phi) * k,
           s0.theta + dTheta * k,
         );
         this.controls.target.lerpVectors(t0, target, k);
@@ -227,10 +274,50 @@ export class Stage {
       },
       ease.inOut,
     ).then(() => {
+      this.flying = false;
+      this.controls.enabled = !this.override;
+      const az = VIEW[this.side].azimuth;
       this.controls.minAzimuthAngle = az - 1.1;
       this.controls.maxAzimuthAngle = az + 1.1;
       this.controls.update();
     });
+  }
+
+  /** Swing the camera round to an army's side of the table. */
+  setSide(team: Team, animate = true) {
+    this.side = team;
+    this.focused = false;
+    const f = this.framing(team);
+    if (!animate) {
+      this.controls.target.copy(f.target);
+      this.camera.position.setFromSphericalCoords(f.dist, f.polar, f.az).add(f.target);
+      this.camera.lookAt(f.target);
+      this.controls.minAzimuthAngle = f.az - 1.1;
+      this.controls.maxAzimuthAngle = f.az + 1.1;
+      this.controls.update();
+      return Promise.resolve();
+    }
+    return this.flyTo(f.target, new THREE.Spherical(f.dist, f.polar, f.az), 1100);
+  }
+
+  /** Lean in on a move: closer, a little lower, centred between the two squares. */
+  focus(point: THREE.Vector3) {
+    this.focused = true;
+    const f = this.framing(this.side);
+    const target = new THREE.Vector3(point.x, 0, point.z);
+    return this.flyTo(
+      target,
+      new THREE.Spherical(f.dist * 0.55, Math.min(f.polar + 0.12, 1.0), f.az),
+      850,
+    );
+  }
+
+  /** Back to the whole board after a move. */
+  unfocus() {
+    if (!this.focused) return Promise.resolve();
+    this.focused = false;
+    const f = this.framing(this.side);
+    return this.flyTo(f.target, new THREE.Spherical(f.dist, f.polar, f.az), 900);
   }
 
   get currentSide() {
@@ -272,6 +359,7 @@ export class Stage {
     const dt = Math.min(100, now - this.last);
     this.last = now;
     stepTweens(dt);
+    this.resize();
     const o = this.override;
     if (o) {
       o.update(dt);
@@ -290,7 +378,7 @@ export class Stage {
   /** Hand the screen to a mini-game (or back to the board with null). */
   setOverride(o: SceneOverride | null) {
     this.override = o;
-    this.controls.enabled = !o;
+    this.controls.enabled = !o && !this.flying;
     if (o) {
       o.scene.environment = this.scene.environment;
       this.fitOverride();

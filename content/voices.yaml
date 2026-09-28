@@ -1,0 +1,35 @@
+# Voices for the Røst-v3 renderer (tools/voice).
+# prompt: "builtin:mic" / "builtin:nic" (CoRal-TTS speakers shipped with the model),
+#         or a file in content/voices/ — a clean 10–20 s WAV of a speaker who has
+#         consented to having their voice cloned.
+# pitch: semitones (post-processing), tempo: speed factor.
+# Changing anything here re-renders that speaker's lines.
+engine: roest-v3
+speakers:
+  # Calm, friendly narrator for menus, help and tutorials.
+  fortaeller:
+    prompt: builtin:nic
+    exaggeration: 0.5
+    cfg_weight: 0.5
+    temperature: 0.7
+  # The Toy Story drill sergeant: battle calls, mini-games, "Klar!".
+  sergent:
+    prompt: builtin:mic
+    exaggeration: 0.85
+    cfg_weight: 0.3
+    temperature: 0.75
+    pitch: -2
+    tempo: 1.04
+  # Team announcers.
+  groen:
+    prompt: builtin:mic
+    exaggeration: 0.65
+    cfg_weight: 0.45
+    temperature: 0.7
+    pitch: 1
+  brun:
+    prompt: builtin:nic
+    exaggeration: 0.65
+    cfg_weight: 0.45
+    temperature: 0.7
+    pitch: -1.5

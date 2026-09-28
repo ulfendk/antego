@@ -27,6 +27,7 @@ import { saveQuality, type Quality } from './scene/quality.js';
 import type { Stage } from './scene/stage.js';
 import { button, h, line, t } from './ui/dom.js';
 import { toast } from './ui/toast.js';
+import { voice } from './voice/voice.js';
 
 const rankLine = (r: Rank) => `rang.${r}` as LineId;
 const rankInfo = (r: Rank) => `rang.${r}_info` as LineId;
@@ -155,6 +156,23 @@ export class App {
             this.stage.quality === 'lav' ? 'big on' : 'big',
           ),
         ),
+        line('menu.lyd', 'h2'),
+        h(
+          'div',
+          { class: 'row' },
+          button(
+            'menu.til',
+            () => (voice.setEnabled(true), this.settings()),
+            voice.enabled ? 'big on' : 'big',
+            '🔊',
+          ),
+          button(
+            'menu.fra',
+            () => (voice.setEnabled(false), this.settings()),
+            voice.enabled ? 'big' : 'big on',
+            '🔇',
+          ),
+        ),
         button('menu.tilbage', () => this.menu(), 'small', '↩'),
         h('p', { class: 'version' }, `v${__APP_VERSION__}`),
       ),
@@ -251,10 +269,7 @@ export class App {
     if (idx < 0) return;
     if (s.pick === null) {
       s.pick = idx;
-      toast(
-        `${t(rankLine(s.placement[idx]!.rank))} – ${t(rankInfo(s.placement[idx]!.rank))}`,
-        2500,
-      );
+      toast([rankLine(s.placement[idx]!.rank), rankInfo(s.placement[idx]!.rank)], 2500);
     } else if (s.pick === idx) {
       s.pick = null;
     } else {
@@ -532,10 +547,10 @@ export class App {
       const was = this.opponentHere;
       this.opponentHere = connected;
       if (this.view?.phase === 'setup') this.onlineSetupStep();
-      else if (was && !connected) toast(t('online.modstander_vaek'), 4000);
-      else if (!was && connected && this.view) toast(t('online.modstander_tilbage'));
+      else if (was && !connected) toast('online.modstander_vaek', 4000);
+      else if (!was && connected && this.view) toast('online.modstander_tilbage');
     };
-    c.onConnection = (online) => toast(t(online ? 'online.tilbage' : 'online.mistet'), 3000);
+    c.onConnection = (online) => toast(online ? 'online.tilbage' : 'online.mistet', 3000);
     c.subscribe((view, events) => this.onView(view, events));
   }
 
@@ -549,7 +564,7 @@ export class App {
     if (view.placed[me]) {
       this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     } else if (this.opponentHere) {
-      toast(t(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_brun'));
+      toast(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_brun');
       this.startSetup(me);
     } else {
       this.waitingRoom(c.code);
@@ -749,8 +764,8 @@ export class App {
     const piece = pieceAt(view.pieces, sq);
     if (piece && piece.team === me) {
       const targets = legalTargets(view.pieces, view.history, piece);
-      if (!targets.length) toast(t('spil.kan_ikke_flytte'), 2000);
-      else if (piece.rank) toast(`${t(rankLine(piece.rank))} – ${t(rankInfo(piece.rank))}`, 2500);
+      if (!targets.length) toast('spil.kan_ikke_flytte', 2000);
+      else if (piece.rank) toast([rankLine(piece.rank), rankInfo(piece.rank)], 2500);
       this.selected = targets.length ? piece.id : null;
       this.presenter.select(this.selected, targets);
       return;

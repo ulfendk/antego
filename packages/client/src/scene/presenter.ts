@@ -17,6 +17,9 @@ export interface PresenterHooks {
   onBattle?: (info: BattleInfo) => Promise<void> | void;
   /** How a battle ended, after the falls. */
   onBattleResolved?: (outcome: string) => void;
+  /** Camera leans in on a move / battle, and back out afterwards. */
+  focus?: (point: THREE.Vector3) => Promise<void>;
+  unfocus?: () => Promise<void>;
 }
 
 /** Where fallen soldiers end up: lying in the toy box area beside the board, per army. */
@@ -200,7 +203,10 @@ export class Presenter {
         const obj = this.pieces.get(e.pieceId);
         if (!obj) return;
         this.select(null, []);
+        await this.hooks.focus?.(squareToWorld(e.from).lerp(squareToWorld(e.to), 0.5));
         await this.hop(obj, e.from, e.to);
+        await wait(250);
+        await this.hooks.unfocus?.();
         return;
       }
       case 'battle': {
@@ -211,6 +217,7 @@ export class Presenter {
         // Walk up to the enemy, then both are revealed.
         const from = { x: Math.round(att.position.x + 4.5), y: Math.round(att.position.z + 4.5) };
         const to = { x: Math.round(def.position.x + 4.5), y: Math.round(def.position.z + 4.5) };
+        await this.hooks.focus?.(squareToWorld(to).lerp(squareToWorld(from), 0.25));
         await this.hop(att, from, to, 0.55);
         att.setRank(e.attackerRank, false);
         await this.reveal(def, e.defenderRank);
@@ -236,7 +243,8 @@ export class Presenter {
           await this.hopFrom(lb.att, mid, squareToWorld(lb.to));
         }
         this.hooks.onBattleResolved?.(e.outcome);
-        await wait(200);
+        await wait(600);
+        await this.hooks.unfocus?.();
         return;
       }
       default:
@@ -255,7 +263,8 @@ export class Presenter {
   private async hopFrom(obj: PieceObject, a: THREE.Vector3, b: THREE.Vector3) {
     const dist = a.distanceTo(b);
     const hops = Math.max(1, Math.round(dist));
-    const dur = 260;
+    // Unhurried hops; a scout's long run speeds up a little so it doesn't drag.
+    const dur = Math.max(300, 460 - hops * 25);
     obj.body.position.y = 0;
     obj.body.rotation.x = 0;
     for (let i = 0; i < hops; i++) {
@@ -274,7 +283,7 @@ export class Presenter {
       );
       // Squash as the base lands on the cardboard.
       await tween(
-        90,
+        140,
         (k) => {
           const s = 1 - Math.sin(k * Math.PI) * 0.07;
           obj.body.scale.set(1 + (1 - s) * 0.5, s, 1 + (1 - s) * 0.5);

@@ -12,8 +12,12 @@ import { Presenter } from './scene/presenter.js';
 import { SETTINGS, detectQuality, saveQuality, savedQuality } from './scene/quality.js';
 import { Stage } from './scene/stage.js';
 import { h } from './ui/dom.js';
+import { startReader } from './voice/reader.js';
+import { voice } from './voice/voice.js';
 
 updater.start();
+startReader();
+void voice.load();
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const ui = document.querySelector<HTMLElement>('#ui')!;
@@ -41,6 +45,8 @@ async function boot() {
   const presenter = new Presenter(kit, {
     onBattle: (info) => app!.showBattle(info),
     onBattleResolved: (outcome) => app!.battleResolved(outcome),
+    focus: (p) => stage.focus(p),
+    unfocus: () => stage.unfocus(),
   });
   stage.scene.add(presenter.group);
   stage.onFrame = (dt) => presenter.update(dt);

@@ -1,13 +1,13 @@
 # Digits, so room codes can be read aloud one by one.
 id: tal
 lines:
-  - { id: '0', speaker: fortaeller, text: nul }
-  - { id: '1', speaker: fortaeller, text: en }
-  - { id: '2', speaker: fortaeller, text: to }
-  - { id: '3', speaker: fortaeller, text: tre }
-  - { id: '4', speaker: fortaeller, text: fire }
-  - { id: '5', speaker: fortaeller, text: fem }
-  - { id: '6', speaker: fortaeller, text: seks }
-  - { id: '7', speaker: fortaeller, text: syv }
-  - { id: '8', speaker: fortaeller, text: otte }
-  - { id: '9', speaker: fortaeller, text: ni }
+  - { id: '0', speaker: fortaeller, text: nul, say: Nul. }
+  - { id: '1', speaker: fortaeller, text: en, say: En. }
+  - { id: '2', speaker: fortaeller, text: to, say: To. }
+  - { id: '3', speaker: fortaeller, text: tre, say: Tre. }
+  - { id: '4', speaker: fortaeller, text: fire, say: Fire. }
+  - { id: '5', speaker: fortaeller, text: fem, say: Fem. }
+  - { id: '6', speaker: fortaeller, text: seks, say: Seks. }
+  - { id: '7', speaker: fortaeller, text: syv, say: Syv. }
+  - { id: '8', speaker: fortaeller, text: otte, say: Otte. }
+  - { id: '9', speaker: fortaeller, text: ni, say: Ni. }

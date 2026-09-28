@@ -1,5 +1,4 @@
 import { Workbox } from 'workbox-window';
-import { LINES } from '../generated/lines.js';
 import { toast } from '../ui/toast.js';
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -20,7 +19,7 @@ class Updater {
     this.wb = new Workbox('/sw.js', { scope: '/' });
     this.wb.addEventListener('waiting', () => {
       this.waiting = true;
-      if (!this.safe) toast(LINES['menu.ny_version']);
+      if (!this.safe) toast('menu.ny_version');
       this.maybeApply();
     });
     // Reload once the new service worker has taken over (only after an update we triggered).
@@ -47,7 +46,7 @@ class Updater {
 
   /** Server says our protocol is outdated: update right away, whatever the game is doing. */
   async forceUpdate() {
-    toast(LINES['menu.opdaterer']);
+    toast('menu.opdaterer');
     if (!this.wb) {
       window.location.reload();
       return;
@@ -64,7 +63,7 @@ class Updater {
   private apply() {
     if (this.applying || !this.wb) return;
     this.applying = true;
-    toast(LINES['menu.opdaterer']);
+    toast('menu.opdaterer');
     this.wb.messageSkipWaiting();
   }
 }
