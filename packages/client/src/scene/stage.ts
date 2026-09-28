@@ -83,9 +83,12 @@ export class Stage {
     visualViewport?.addEventListener('resize', () => this.resize());
     addEventListener('orientationchange', () => setTimeout(() => this.resize(), 250));
     this.renderer.setAnimationLoop(() => this.frame());
-    // Hidden tabs get no animation frames; keep animations (and so the game flow) moving anyway.
+    // Hidden tabs get no animation frames (and some browsers stop them for background windows
+    // that still count as visible); keep animations, and so the game flow, moving anyway.
     setInterval(() => {
-      if (!document.hidden) return;
+      const now = performance.now();
+      if (!document.hidden && now - this.last < 250) return;
+      this.last = now;
       stepTweens(100);
       this.override?.update(100);
     }, 100);

@@ -26,7 +26,10 @@ export type Sound =
   | 'whistle'
   | 'engine'
   | 'whoosh'
-  | 'squeak';
+  | 'squeak'
+  | 'drive'
+  | 'rumble'
+  | 'splash';
 
 const KEY = 'antego.sfx';
 
@@ -178,20 +181,19 @@ const N = {
 };
 
 /** A little toy engine going past: a putt-putting low buzz that rises and falls (Doppler-ish). */
-function engine(ctx: AudioContext, out: Out, t: number) {
-  const dur = 3.6;
+function engine(ctx: AudioContext, out: Out, t: number, dur = 3.6, pitch = 58, rate = 17) {
   const osc = ctx.createOscillator();
   osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(58, t);
-  osc.frequency.linearRampToValueAtTime(76, t + dur * 0.45);
-  osc.frequency.linearRampToValueAtTime(52, t + dur);
+  osc.frequency.setValueAtTime(pitch, t);
+  osc.frequency.linearRampToValueAtTime(pitch * 1.3, t + dur * 0.45);
+  osc.frequency.linearRampToValueAtTime(pitch * 0.9, t + dur);
   const f = ctx.createBiquadFilter();
   f.type = 'lowpass';
   f.frequency.value = 520;
   const putt = ctx.createGain();
   putt.gain.value = 0.5;
   const lfo = ctx.createOscillator();
-  lfo.frequency.value = 17;
+  lfo.frequency.value = rate;
   const depth = ctx.createGain();
   depth.gain.value = 0.5;
   lfo.connect(depth).connect(putt.gain);
@@ -207,7 +209,37 @@ function engine(ctx: AudioContext, out: Out, t: number) {
 }
 
 const SOUNDS: Record<Sound, (ctx: AudioContext, out: Out, t: number) => void> = {
-  engine,
+  engine: (c, o, t) => engine(c, o, t),
+  // Driving over the board: a longer putt-putt (jeep) and a deep clanking rumble (tank).
+  drive: (c, o, t) => engine(c, o, t, 7, 62, 19),
+  rumble: (c, o, t) => {
+    engine(c, o, t, 9, 46, 9);
+    for (let i = 0; i < 40; i++) {
+      noise(c, o, {
+        t: t + 0.4 + i * 0.2,
+        dur: 0.04,
+        gain: 0.02 + 0.09 * Math.sin((i / 40) * Math.PI),
+        type: 'bandpass',
+        freq: vary(900, 0.2),
+        q: 6,
+      });
+    }
+  },
+  // Wheels hitting the water: a wet noise burst and a couple of bubbly blips.
+  splash: (c, o, t) => {
+    noise(c, o, { t, dur: 0.5, gain: 0.28, type: 'lowpass', freq: 2600, freq1: 500, attack: 0.01 });
+    noise(c, o, { t, dur: 0.25, gain: 0.12, type: 'highpass', freq: 3000, attack: 0.005 });
+    for (let i = 0; i < 3; i++) {
+      tone(c, o, {
+        type: 'sine',
+        f0: vary(500, 0.3),
+        f1: vary(1100, 0.2),
+        t: t + 0.08 + i * 0.09,
+        dur: 0.07,
+        gain: 0.06,
+      });
+    }
+  },
   whoosh: (c, o, t) =>
     noise(c, o, {
       t,
@@ -386,7 +418,12 @@ class Sfx {
     if (!this.enabled) return;
     const ctx = audioContext() ?? (navigator.userActivation?.hasBeenActive ? unlockAudio() : null);
     if (!ctx || ctx.state !== 'running') return;
-    SOUNDS[sound](ctx, output(ctx), ctx.currentTime + 0.01 + delayMs / 1000);
+    try {
+      SOUNDS[sound](ctx, output(ctx), ctx.currentTime + 0.01 + delayMs / 1000);
+    } catch (err) {
+      // A sound must never break the game.
+      console.warn(err);
+    }
   }
 
   setEnabled(on: boolean) {

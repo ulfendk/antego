@@ -67,10 +67,26 @@ export class Presenter {
   /** Queue a view update; events are animated in order before the view is applied. */
   present(view: GameView, events: GameEvent[]): Promise<void> {
     const gen = this.generation;
+    this.pending++;
     this.queue = this.queue
+      .then(() => this.hold)
       .then(() => (gen === this.generation ? this.run(view, events) : undefined))
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
+      .finally(() => this.pending--);
     return this.queue;
+  }
+
+  private pending = 0;
+  private hold: Promise<unknown> = Promise.resolve();
+
+  /** Whether moves are being animated or waiting to be. */
+  get busy() {
+    return this.pending > 0;
+  }
+
+  /** Something is driving over the board: animations wait until it has passed. */
+  holdUntil(done: Promise<unknown>) {
+    this.hold = done.catch(() => undefined);
   }
 
   /** Forget the current game: pending presentations are dropped and the board is cleared. */

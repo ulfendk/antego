@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { sfx } from '../audio/sfx.js';
 import { activeBoard } from './board.js';
+import { BoardDrive } from './boardDrive.js';
 import { loadModel, modelMesh } from './pieces.js';
 import { plasticMaterial } from './plastic.js';
 import type { Presenter } from './presenter.js';
@@ -8,16 +9,18 @@ import { toyBoxCentres } from './props.js';
 import type { Stage } from './stage.js';
 import { ease, tween, wait } from './tween.js';
 
-/**
- * Little surprises around the table that have nothing to do with the game: a toy jeep racing
- * past behind enemy lines, a paper plane gliding over, a tank peeking out from behind a toy
- * box, a fallen soldier sitting up in the toy box to wave. One every minute or so.
- */
 /** Toy vehicles are sculpted to the soldiers' scale (see tools/models/vehicles.py). */
 const VEHICLE_SCALE = 1.1;
 /** Distance from a toy box's flaps to the tank's centre line (half the tank's width, and some). */
 const TANK_CLEARANCE = 0.75;
 const WHEEL_R = 0.2;
+
+/**
+ * Little surprises around the table that have nothing to do with the game: a toy jeep racing
+ * past behind enemy lines or right across the board, a paper plane gliding over, a tank peeking
+ * out from behind a toy box or rumbling over the board, a fallen soldier sitting up in the toy
+ * box to wave. One every minute or so.
+ */
 
 export class EasterEggs {
   private next = 30_000 + Math.random() * 30_000;
@@ -31,6 +34,7 @@ export class EasterEggs {
   private tank: THREE.Group | null = null;
   private turret: THREE.Object3D | null = null;
   private plane = this.buildPlane();
+  private board: BoardDrive;
   private dust: THREE.Mesh[] = [];
   private dustGeo = new THREE.SphereGeometry(0.12, 8, 6);
   private dustMat = new THREE.MeshBasicMaterial({
@@ -46,6 +50,7 @@ export class EasterEggs {
   ) {
     this.plane.visible = false;
     scene.add(this.plane);
+    this.board = new BoardDrive(scene, presenter);
     // Not needed for the first half minute: don't compete with the soldiers while loading.
     setTimeout(() => void this.loadVehicles().catch(() => undefined), 5000);
   }
@@ -68,12 +73,17 @@ export class EasterEggs {
     () => this.planeGlide(),
     () => this.tankPeek(),
     () => this.wave(),
+    () => this.driveOver('jeep'),
+    () => this.driveOver('tank'),
   ];
 
-  /** Run one now (0 jeep, 1 plane, 2 tank, 3 wave); `?debug` exposes this as eggs.play(i). */
+  /**
+   * Run one now (0 jeep, 1 plane, 2 tank, 3 wave, 4 jeep over the board, 5 tank over the
+   * board); `?debug` exposes this as eggs.play(i).
+   */
   play(i: number) {
     if (this.busy) return;
-    if ((i === 0 || i === 2) && !this.jeep) {
+    if (i !== 1 && i !== 3 && !this.jeep) {
       this.next = 2000;
       return;
     }
@@ -165,6 +175,42 @@ export class EasterEggs {
     );
     j.visible = false;
     return true;
+  }
+
+  // ---------------------------------------------------------------- across the board
+
+  private driveOver(kind: 'jeep' | 'tank') {
+    const s = VEHICLE_SCALE;
+    if (kind === 'jeep') {
+      // Wheels at ±0.55 along, ±0.4 across (tools/models/vehicles.py), 0.07 wide.
+      const contacts = [-1, 1].flatMap((f) =>
+        [-1, 1].map((r) => ({ x: f * 0.55 * s, z: r * 0.4 * s })),
+      );
+      return this.board.drive({
+        kind,
+        object: this.jeep!,
+        halfWidth: 0.53 * s,
+        halfLength: 0.98 * s,
+        axle: 0.55 * s,
+        contacts,
+        wheels: { hubs: this.wheels, radius: WHEEL_R * s },
+        speed: 2.3,
+      });
+    }
+    // Tracks at ±0.38 across; the gun reaches 1.15 forward of the hull's centre.
+    const contacts = [-1, 1].flatMap((f) =>
+      [-1, 1].map((r) => ({ x: f * 0.66 * s, z: r * 0.38 * s })),
+    );
+    return this.board.drive({
+      kind,
+      object: this.tank!,
+      halfWidth: 0.56 * s,
+      halfLength: 1.15 * s,
+      axle: 0.66 * s,
+      contacts,
+      turret: this.turret!,
+      speed: 1.5,
+    });
   }
 
   // ---------------------------------------------------------------- the paper plane

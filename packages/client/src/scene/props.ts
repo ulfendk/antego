@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { BoardId, BoardSpec, Team } from '@antego/shared';
 import { activeBoard } from './board.js';
+import type { Obstacle } from './drive.js';
 import { PIECE_SCALE, soldierMesh, type PieceKit } from './pieces.js';
 import { BOARD_UNITS, TEAM_COLORS, fbm } from './textures.js';
 
@@ -34,7 +35,8 @@ const LAYOUTS: Record<BoardId, BoxLayout> = {
     rows: 7,
     centre: (team) => {
       const s = team === 'groen' ? 1 : -1;
-      return new THREE.Vector3(s * 8.5, 0, s * 2.4);
+      // Clear of the no-man's-land rows, so toy vehicles can drive along them.
+      return new THREE.Vector3(s * 8.5, 0, s * 4.3);
     },
     lid: [-12.5, -11, 0.5],
     spares: [
@@ -74,6 +76,21 @@ export function toyBoxCentres(): { centre: THREE.Vector3; halfX: number; halfZ: 
     halfX,
     halfZ,
   }));
+}
+
+/** Everything standing on the table round the board, for vehicles to steer round. */
+export function tableObstacles(): Obstacle[] {
+  const L = layout();
+  const out: Obstacle[] = toyBoxCentres().map(({ centre, halfX, halfZ }) => ({
+    kind: 'rect',
+    x: centre.x,
+    z: centre.z,
+    hx: halfX,
+    hz: halfZ,
+  }));
+  out.push({ kind: 'circle', x: L.lid[0], z: L.lid[1], r: BOARD_UNITS * 0.62 * 0.72 });
+  for (const [, , x, z] of L.spares) out.push({ kind: 'circle', x, z, r: 0.45 });
+  return out;
 }
 
 /** Where the n-th fallen soldier of an army lies in its toy box (in rows, then layers). */

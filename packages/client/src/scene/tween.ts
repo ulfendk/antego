@@ -38,7 +38,21 @@ export function tween(
 
 export const wait = (ms: number) => tween(ms, () => undefined);
 
+const ticks: { tick: (dtMs: number) => boolean; done: () => void }[] = [];
+
+/** Runs `tick` every frame (with the frame time in ms) until it returns false. */
+export function every(tick: (dtMs: number) => boolean): Promise<void> {
+  return new Promise((done) => ticks.push({ tick, done }));
+}
+
 export function stepTweens(dtMs: number) {
+  for (let i = ticks.length - 1; i >= 0; i--) {
+    const j = ticks[i]!;
+    if (!j.tick(dtMs)) {
+      ticks.splice(i, 1);
+      j.done();
+    }
+  }
   for (let i = jobs.length - 1; i >= 0; i--) {
     const j = jobs[i]!;
     j.t += dtMs;

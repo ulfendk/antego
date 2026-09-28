@@ -8,7 +8,7 @@ Ideas and follow-ups that aren't scheduled yet. Newest at the bottom of each sec
 
 ## Easter eggs
 
-- Drive the toy jeep and tank around on the playing board itself (steering round the soldiers).
+- On the plus board the arms are full at the start of a 3–4 player game, so vehicles can only cross it once soldiers have moved out (or on the menu). A route that enters and leaves through the same open arm would fix that.
 
 ## 3–4 players
 
