@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  RANKS,
   side,
   type GameEvent,
   type GameView,
@@ -263,7 +264,6 @@ export class Presenter {
         const def = this.pieces.get(e.defenderId);
         if (!att || !def) return;
         this.select(null, []);
-        // Walk up to the enemy, then both are revealed.
         const from = squareAt(att.position);
         const to = squareAt(def.position);
         // A scout charging from afar: frame the whole run, not just the clash.
@@ -272,13 +272,16 @@ export class Presenter {
           squareToWorld(to).lerp(squareToWorld(from), span > 3 ? 0.5 : 0.25),
           span,
         );
-        // Face each other (on the plus board they can meet side-on).
+        // Face each other (on the plus board they can meet side-on) and show who they are.
         await Promise.all([this.turnTo(att, def.position), this.turnTo(def, att.position)]);
-        await this.hop(att, from, to, 0.55);
-        await this.threaten(att, def);
+        await Promise.all([this.reveal(att, e.attackerRank), this.reveal(def, e.defenderRank)]);
+        // Walk up to a square's length away: they square up, they never touch.
+        const gap = att.position.distanceTo(def.position);
+        const stop = att.position.clone().lerp(def.position, Math.max(0, (gap - FACE_OFF) / gap));
+        if (gap > FACE_OFF + 0.05) await this.hopFrom(att, att.position.clone(), stop);
+        await this.taunt(att, e.attackerRank);
+        await this.taunt(def, e.defenderRank);
         sfx.play('clash');
-        att.setRank(e.attackerRank, false);
-        await this.reveal(def, e.defenderRank);
         await this.hooks.onBattle?.({
           attackerTeam: att.team,
           attackerRank: e.attackerRank,
@@ -302,8 +305,7 @@ export class Presenter {
         await Promise.all(fallen.map((o) => this.fall(o, view)));
         // The winning attacker takes the square.
         if (e.outcome === 'attacker' && lb) {
-          const mid = squareToWorld(lb.from).lerp(squareToWorld(lb.to), 0.55);
-          await this.hopFrom(lb.att, mid, squareToWorld(lb.to));
+          await this.hopFrom(lb.att, lb.att.position.clone(), squareToWorld(lb.to));
         }
         // Survivors turn back to face the way their army faces.
         if (lb) {
@@ -392,38 +394,82 @@ export class Presenter {
     obj.shadowOpacity = 1;
   }
 
-  /** Before the reveal: the attacker lunges twice and the hidden enemy trembles. */
-  private async threaten(att: PieceObject, def: PieceObject) {
-    for (let i = 0; i < 2; i++) {
+  /**
+   * Squaring up before the fight, without touching: a jump straight up, a double jump, a
+   * stomp, puffing up and leaning back, or a spin on the spot. Mines and flags can't jump;
+   * they just wobble.
+   */
+  private async taunt(obj: PieceObject, rank: Rank) {
+    const rig = obj.rig;
+    const reset = () => {
+      tipOnEdge(rig, 0);
+      rig.position.set(0, 0, 0);
+      rig.rotation.set(0, 0, 0);
+      rig.scale.setScalar(1);
+    };
+    if (!RANKS[rank].movable) {
+      sfx.play('tick');
+      await tween(360, (k) => (rig.rotation.z = Math.sin(k * Math.PI * 4) * 0.08 * (1 - k)));
+      reset();
+      return;
+    }
+    const jump = (h: number, ms: number) => {
       sfx.play('hop');
-      await tween(
-        170,
+      return tween(
+        ms,
         (k) => {
-          const s = Math.sin(k * Math.PI);
-          att.rig.rotation.x = 0.38 * s;
-          att.rig.position.z = 0.1 * s;
-          att.rig.position.y = 0.04 * s;
-          def.rig.rotation.z = Math.sin(k * Math.PI * 6) * 0.06;
+          const up = Math.sin(k * Math.PI);
+          rig.position.y = h * up;
+          // Squash a little on take-off and landing.
+          const squash = 1 - 0.08 * Math.max(0, Math.cos(k * Math.PI * 2));
+          rig.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
         },
         ease.linear,
       );
-    }
-    att.rig.rotation.x = 0;
-    att.rig.position.set(0, 0, 0);
-    def.rig.rotation.z = 0;
+    };
+    const moves = [
+      () => jump(0.35, 320),
+      async () => {
+        await jump(0.22, 220);
+        await jump(0.3, 260);
+      },
+      async () => {
+        for (const side of [1, -1, 1]) {
+          await tween(120, (k) => tipOnEdge(rig, side * 0.2 * Math.sin(k * Math.PI)), ease.linear);
+          sfx.play('tap');
+        }
+      },
+      async () => {
+        sfx.play('hop');
+        await tween(260, (k) => {
+          rig.scale.setScalar(1 + 0.12 * k);
+          rig.rotation.x = -0.22 * k;
+        });
+        await wait(220);
+        await tween(200, (k) => {
+          rig.scale.setScalar(1.12 - 0.12 * k);
+          rig.rotation.x = -0.22 * (1 - k);
+        });
+      },
+      async () => {
+        sfx.play('hop');
+        await tween(460, (k) => {
+          rig.rotation.y = k * Math.PI * 2;
+          rig.position.y = Math.sin(k * Math.PI) * 0.12;
+        });
+      },
+    ];
+    await moves[Math.floor(Math.random() * moves.length)]!();
+    reset();
   }
 
   private async reveal(obj: PieceObject, rank: Rank) {
     if (obj.rank === rank) return;
     // The tile tips over like a flipped Stratego piece, and the soldier pops up.
     sfx.play('flip');
-    await tween(
-      220,
-      (k) => (obj.body.rotation.x = (obj.team === 'groen' ? 1 : -1) * k * 1.4),
-      ease.in,
-    );
+    await tween(220, (k) => (obj.rig.rotation.x = -k * 1.4), ease.in);
     obj.setRank(rank, false);
-    obj.body.rotation.x = 0;
+    obj.rig.rotation.x = 0;
     obj.body.scale.setScalar(0.01);
     await tween(260, (k) => obj.body.scale.setScalar(Math.max(0.01, k)), ease.back);
   }
@@ -464,6 +510,8 @@ export class Presenter {
 
 /** Base plate half-width in the soldier's own frame (model units): the edge he rocks onto. */
 const PLATE_HALF = 0.21;
+/** Centre to centre, two soldiers squaring up (their bases are ~0.6 wide). */
+const FACE_OFF = 0.95;
 
 /**
  * Roll the soldier by `theta` about one long edge of his base plate instead of its centre:
