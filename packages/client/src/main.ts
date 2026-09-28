@@ -55,6 +55,7 @@ async function boot() {
     onBattleResolved: (outcome) => app!.battleResolved(outcome),
     focus: (p) => stage.focus(p),
     unfocus: () => stage.unfocus(),
+    onOut: (team) => app!.armyOut(team),
   });
   stage.scene.add(presenter.group);
   const world = new World(stage.scene, kit, SETTINGS[quality].printSize);

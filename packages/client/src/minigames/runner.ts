@@ -63,11 +63,7 @@ export async function runMinigame(
           { class: `panel minigame-intro ${ctx.team}` },
           h('div', { class: 'mg-icon', 'aria-hidden': 'true' }, spec.icon),
           line(spec.title, 'h1'),
-          line(
-            ctx.team === 'groen' ? 'minispil.spiller_groen' : 'minispil.spiller_sand',
-            'p',
-            `team-chip ${ctx.team}`,
-          ),
+          line(`minispil.spiller_${ctx.team}` as LineId, 'p', `team-chip ${ctx.team}`),
           line(spec.howto, 'p'),
           button('menu.start', () => resolve(), 'big go', '▶'),
         ),

@@ -580,3 +580,77 @@ h2,
   display: flex;
   gap: 10px;
 }
+
+/* ---------------------------------------------------------------- 3–4 armies */
+
+.turn.blaa,
+.team-chip.blaa {
+  background: #6f8698;
+  color: #f2f5f8;
+  border-color: #3a4752;
+}
+
+.turn.brun,
+.team-chip.brun {
+  background: #7a5234;
+  color: #f6ecdf;
+  border-color: #3f2915;
+}
+
+.turn-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.turnbar {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(243, 236, 210, 0.9);
+  border: 3px solid var(--olive-dark);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.turnbar .chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s;
+}
+
+.turnbar .chip.groen {
+  background: #3f7a1f;
+}
+.turnbar .chip.sand {
+  background: #c28a4a;
+}
+.turnbar .chip.blaa {
+  background: #5d7486;
+}
+.turnbar .chip.brun {
+  background: #6b4428;
+}
+
+.turnbar .chip.now {
+  transform: scale(1.35);
+  border-color: #fff4d0;
+}
+
+.turnbar .chip.out {
+  opacity: 0.3;
+  background-image: linear-gradient(
+    45deg,
+    transparent 44%,
+    #1f2612 44%,
+    #1f2612 56%,
+    transparent 56%
+  );
+}
+
+.battle.out {
+  border-color: #b0413e;
+}

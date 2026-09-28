@@ -1,4 +1,5 @@
 import {
+  BOARDS,
   legalTargets,
   pieceAt,
   presetPlacement,
@@ -35,6 +36,8 @@ import { voice } from './voice/voice.js';
 import { sfx } from './audio/sfx.js';
 
 const rankLine = (r: Rank) => `rang.${r}` as LineId;
+/** Per-army text, e.g. teamLine('spil.tur', 'blaa') → 'spil.tur_blaa'. */
+const teamLine = (prefix: string, team: Team) => `${prefix}_${team}` as LineId;
 const rankInfo = (r: Rank) => `rang.${r}_info` as LineId;
 
 interface SetupState {
@@ -75,6 +78,7 @@ export class App {
 
   menu() {
     this.leaveGame();
+    this.world.use('klassisk');
     this.stage.idleOrbit(true);
     this.show(
       h(
@@ -83,7 +87,7 @@ export class App {
         h('img', { class: 'logo', src: '/logo.svg', alt: '' }),
         line('menu.titel', 'h1', 'title'),
         button('menu.spil_computer', () => this.chooseDifficulty(), 'big', '🤖'),
-        button('menu.spil_to', () => this.chooseMinigames('hotseat'), 'big', '👫'),
+        button('menu.spil_to', () => this.choosePlayers('hotseat'), 'big', '👫'),
         button('menu.spil_online', () => this.onlineMenu(), 'big', '🌍'),
         button('menu.tutorial', () => this.startTutorial(), 'small', '📖'),
         button('menu.indstillinger', () => this.settings(), 'small', '⚙️'),
@@ -92,7 +96,7 @@ export class App {
   }
 
   private chooseDifficulty() {
-    const pick = (d: Difficulty) => this.chooseMinigames('ai', d);
+    const pick = (d: Difficulty) => this.choosePlayers('ai', d);
     this.show(
       h(
         'div',
@@ -110,12 +114,36 @@ export class App {
     );
   }
 
-  private chooseMinigames(mode: 'ai' | 'hotseat' | 'online', difficulty: Difficulty = 'mellem') {
+  /** Two armies play classic Stratego; three or four play on the plus-shaped board. */
+  private choosePlayers(mode: 'ai' | 'hotseat', difficulty: Difficulty = 'mellem') {
+    const pick = (n: 2 | 3 | 4) => this.chooseMinigames(mode, difficulty, n);
+    this.show(
+      h(
+        'div',
+        { class: 'panel' },
+        line('menu.antal', 'h2'),
+        h(
+          'div',
+          { class: 'col' },
+          button('menu.to_haere', () => pick(2), 'big', '🟩🟫'),
+          button('menu.tre_haere', () => pick(3), 'big', '🟩🟦🟫'),
+          button('menu.fire_haere', () => pick(4), 'big', '🟩🟦🟫🟤'),
+        ),
+        button('menu.tilbage', () => this.menu(), 'small', '↩'),
+      ),
+    );
+  }
+
+  private chooseMinigames(
+    mode: 'ai' | 'hotseat' | 'online',
+    difficulty: Difficulty = 'mellem',
+    players: 2 | 3 | 4 = 2,
+  ) {
     const current = savedMinigames();
     const pick = (m: MinigameMode) => {
       saveMinigames(m);
       if (mode === 'online') void this.createOnline(m);
-      else this.newGame(mode, difficulty, m);
+      else this.newGame(mode, difficulty, m, players);
     };
     const opt = (m: MinigameMode, id: LineId, icon: string) =>
       button(id, () => pick(m), current === m ? 'big on' : 'big', icon);
@@ -210,14 +238,16 @@ export class App {
     mode: 'ai' | 'hotseat',
     difficulty: Difficulty = 'mellem',
     minigames: MinigameMode = savedMinigames(),
+    players: 2 | 3 | 4 = 2,
   ) {
     this.controller?.dispose();
     this.presenter.reset();
     this.handingOver = false;
     this.inMinigame = false;
     this.banner.replaceChildren();
-    this.lastGame = { mode, difficulty, minigames };
-    const c = new LocalController(mode, { minigames }, difficulty);
+    this.lastGame = { mode, difficulty, minigames, players };
+    this.world.use(players > 2 ? 'kryds' : 'klassisk');
+    const c = new LocalController(mode, { minigames }, difficulty, players);
     this.controller = c;
     this.view = null;
     this.selected = null;
@@ -229,11 +259,12 @@ export class App {
     const c = this.controller!;
     updater.setSafe(true);
     c.setViewer(team);
-    this.setupState = { team, placement: presetPlacement(team, 'forsvar'), pick: null };
+    const board = BOARDS[c.view().board];
+    this.setupState = { team, placement: presetPlacement(team, 'forsvar', board), pick: null };
     void this.stage.setSide(team);
     this.renderSetup();
     const preset = (id: PresetId) => {
-      this.setupState!.placement = presetPlacement(team, id);
+      this.setupState!.placement = presetPlacement(team, id, board);
       this.setupState!.pick = null;
       this.renderSetup();
     };
@@ -253,7 +284,7 @@ export class App {
           button(
             'opstilling.bland',
             () => {
-              this.setupState!.placement = randomPlacement(team, randomSeed());
+              this.setupState!.placement = randomPlacement(team, randomSeed(), board);
               this.setupState!.pick = null;
               this.renderSetup();
             },
@@ -314,8 +345,10 @@ export class App {
     this.presenter.select(null, []);
     this.show();
     c.setup(s.team, s.placement);
-    if (c.mode === 'hotseat' && s.team === 'groen') {
-      this.handover('sand', () => this.startSetup('sand'));
+    const v = c.view();
+    const next = v.teams.find((t) => !v.placed[t]);
+    if (c.mode === 'hotseat' && next) {
+      this.handover(next, () => this.startSetup(next));
     } else if (c.mode === 'online' && this.view?.phase === 'setup') {
       this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     }
@@ -353,6 +386,18 @@ export class App {
     }
     if (view.phase !== 'play') return;
     updater.setSafe(false);
+    const me = c.me(view);
+    if (c.mode === 'ai' && me && events.some((e) => e.type === 'out' && e.team === me)) {
+      this.show(
+        h(
+          'div',
+          { class: 'panel' },
+          line('spil.du_er_ude', 'h2'),
+          button('spil.se_med', () => this.show(), 'big go', '👀'),
+          button('slut.menu', () => this.menu(), '', '🏠'),
+        ),
+      );
+    }
     if (c.mode === 'online' && !this.inMinigame) this.show();
     const turnEvent = events.find((e) => e.type === 'turn');
     if (c.mode === 'hotseat' && turnEvent && !this.handingOver) {
@@ -374,7 +419,7 @@ export class App {
       h(
         'div',
         { class: `panel handover ${team}` },
-        line(team === 'groen' ? 'spil.giv_groen' : 'spil.giv_sand', 'h2'),
+        line(teamLine('spil.giv', team), 'h2'),
         button(
           'spil.jeg_er_klar',
           () => {
@@ -398,16 +443,26 @@ export class App {
     const mine = view.turn === c.me(view);
     const id: LineId =
       c.mode === 'hotseat'
-        ? view.turn === 'groen'
-          ? 'spil.tur_groen'
-          : 'spil.tur_sand'
+        ? teamLine('spil.tur', view.turn)
         : mine
           ? 'spil.din_tur'
           : c.mode === 'ai'
             ? 'spil.computer_tur'
             : 'online.modstander_tur';
+    const bar =
+      view.teams.length > 2
+        ? h(
+            'div',
+            { class: 'turnbar', 'aria-hidden': 'true' },
+            ...view.teams.map((t) =>
+              h('span', {
+                class: `chip ${t}${t === view.turn ? ' now' : ''}${view.out.includes(t) ? ' out' : ''}`,
+              }),
+            ),
+          )
+        : null;
     this.hud.replaceChildren(
-      h('div', { class: `turn ${view.turn}` }, line(id)),
+      h('div', { class: 'turn-wrap' }, h('div', { class: `turn ${view.turn}` }, line(id)), bar),
       h(
         'div',
         { class: 'hud-buttons' },
@@ -465,9 +520,7 @@ export class App {
     sfx.play(c.mode === 'hotseat' || iWon ? 'victory' : 'sad', 300);
     const title: LineId =
       c.mode === 'hotseat'
-        ? winner === 'groen'
-          ? 'slut.groen_vinder'
-          : 'slut.sand_vinder'
+        ? (`slut.${winner}_vinder` as LineId)
         : iWon
           ? 'slut.du_vandt'
           : c.mode === 'ai'
@@ -498,7 +551,12 @@ export class App {
               ? this.onlineMenu()
               : mode === 'tutorial'
                 ? this.startTutorial()
-                : this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
+                : this.newGame(
+                    mode,
+                    this.lastGame?.difficulty,
+                    this.lastGame?.minigames,
+                    this.lastGame?.players,
+                  ),
           'big go',
           '🔁',
         ),
@@ -512,6 +570,7 @@ export class App {
   /** "Sådan spiller du": the sergeant's walkthrough on a practice board. */
   startTutorial() {
     this.leaveGame();
+    this.world.use('klassisk');
     this.show();
     const c = new TutorialController();
     this.controller = c;
@@ -639,7 +698,7 @@ export class App {
     if (view.placed[me]) {
       this.show(h('div', { class: 'panel' }, line('online.venter_opstilling', 'h2')));
     } else if (this.opponentHere) {
-      toast(me === 'groen' ? 'online.du_er_groen' : 'online.du_er_sand');
+      toast(teamLine('online.du_er', me));
       this.startSetup(me);
     } else {
       this.waitingRoom(c.code);
@@ -727,6 +786,7 @@ export class App {
     mode: 'ai' | 'hotseat';
     difficulty: Difficulty;
     minigames: MinigameMode;
+    players: 2 | 3 | 4;
   } | null = null;
 
   /** A close fight: everyone on this device plays the battle's mini-game in turn. */
@@ -757,6 +817,16 @@ export class App {
     } finally {
       this.inMinigame = false;
     }
+  }
+
+  /** "Den gråblå hær er ude!" – shown while that army's soldiers go into its toy box. */
+  async armyOut(team: Team) {
+    sfx.play('sad');
+    this.banner.replaceChildren(
+      h('div', { class: `battle out ${team}` }, line(teamLine('spil.ude', team), 'span', 'verb')),
+    );
+    await new Promise((r) => setTimeout(r, 1800));
+    this.banner.replaceChildren();
   }
 
   async showBattle(info: BattleInfo) {
@@ -834,7 +904,7 @@ export class App {
     if (!me || view.turn !== me) return;
     const piece = pieceAt(view.pieces, sq);
     if (piece && piece.team === me) {
-      const targets = legalTargets(view.pieces, view.history, piece);
+      const targets = legalTargets(view.pieces, view.history, piece, BOARDS[view.board]);
       if (!targets.length) toast('spil.kan_ikke_flytte', 2000);
       else if (piece.rank)
         toast([rankLine(piece.rank), rankInfo(piece.rank)], 2500, insignia(piece.rank));
@@ -843,7 +913,10 @@ export class App {
       return;
     }
     const sel = this.selected ? view.pieces.find((p) => p.id === this.selected) : null;
-    if (sel && legalTargets(view.pieces, view.history, sel).some((p) => samePos(p, sq))) {
+    if (
+      sel &&
+      legalTargets(view.pieces, view.history, sel, BOARDS[view.board]).some((p) => samePos(p, sq))
+    ) {
       this.selected = null;
       c.move(me, sel.id, sq);
       return;

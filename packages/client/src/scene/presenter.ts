@@ -22,6 +22,8 @@ export interface PresenterHooks {
   /** Camera leans in on a move / battle, and back out afterwards. */
   focus?: (point: THREE.Vector3) => Promise<void>;
   unfocus?: () => Promise<void>;
+  /** An army is knocked out (3–4 players): banner before its soldiers go to the toy box. */
+  onOut?: (team: Team) => Promise<void> | void;
 }
 
 /** Where fallen soldiers end up: lying in their army's toy box beside the board. */
@@ -264,6 +266,16 @@ export class Presenter {
         await this.hooks.unfocus?.();
         return;
       }
+      case 'out': {
+        this.select(null, []);
+        await this.hooks.onOut?.(e.team);
+        const objs = e.removed
+          .map((id) => this.pieces.get(id))
+          .filter((o): o is PieceObject => !!o);
+        sfx.play('rattle');
+        await Promise.all(objs.map((o, i) => wait(i * 70).then(() => this.fall(o, view, true))));
+        return;
+      }
       default:
         return;
     }
@@ -329,9 +341,9 @@ export class Presenter {
   }
 
   /** Falls over with a toy bounce, then is lifted into the toy box beside the board. */
-  private async fall(obj: PieceObject, view: GameView) {
+  private async fall(obj: PieceObject, view: GameView, quiet = false) {
     const dir = obj.team === 'groen' ? 1 : -1;
-    sfx.play('clatter');
+    if (!quiet) sfx.play('clatter');
     await tween(
       520,
       (k) => {
@@ -354,7 +366,7 @@ export class Presenter {
       },
       ease.inOut,
     );
-    sfx.play('rattle');
+    if (!quiet) sfx.play('rattle');
     this.pieces.delete(obj.pieceId);
     obj.setBadge(false);
     this.layDown(obj);
