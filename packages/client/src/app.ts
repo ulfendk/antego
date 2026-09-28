@@ -7,6 +7,7 @@ import {
   samePos,
   type Difficulty,
   type GameEvent,
+  type MinigameMode,
   type GameView,
   type Placement,
   type Pos,
@@ -15,8 +16,10 @@ import {
   type Team,
 } from '@antego/shared';
 import { LocalController } from './game/controller.js';
+import { runMinigame } from './minigames/runner.js';
 import type { LineId } from './generated/lines.js';
 import { updater } from './pwa/updater.js';
+import type { PieceKit } from './scene/pieces.js';
 import type { Presenter, BattleInfo } from './scene/presenter.js';
 import { saveQuality, type Quality } from './scene/quality.js';
 import type { Stage } from './scene/stage.js';
@@ -47,6 +50,7 @@ export class App {
     private root: HTMLElement,
     private stage: Stage,
     private presenter: Presenter,
+    private kit: PieceKit,
   ) {
     root.append(this.hud, this.banner, this.screen);
     this.bindInput();
@@ -73,14 +77,14 @@ export class App {
         h('img', { class: 'logo', src: '/logo.svg', alt: '' }),
         line('menu.titel', 'h1', 'title'),
         button('menu.spil_computer', () => this.chooseDifficulty(), 'big', '🤖'),
-        button('menu.spil_to', () => this.newGame('hotseat'), 'big', '👫'),
+        button('menu.spil_to', () => this.chooseMinigames('hotseat'), 'big', '👫'),
         button('menu.indstillinger', () => this.settings(), 'small', '⚙️'),
       ),
     );
   }
 
   private chooseDifficulty() {
-    const pick = (d: Difficulty) => this.newGame('ai', d);
+    const pick = (d: Difficulty) => this.chooseMinigames('ai', d);
     this.show(
       h(
         'div',
@@ -92,6 +96,31 @@ export class App {
           button('menu.let', () => pick('let'), 'big', '⭐'),
           button('menu.mellem', () => pick('mellem'), 'big', '⭐⭐'),
           button('menu.svaer', () => pick('svaer'), 'big', '⭐⭐⭐'),
+        ),
+        button('menu.tilbage', () => this.menu(), 'small', '↩'),
+      ),
+    );
+  }
+
+  private chooseMinigames(mode: 'ai' | 'hotseat', difficulty: Difficulty = 'mellem') {
+    const current = savedMinigames();
+    const pick = (m: MinigameMode) => {
+      saveMinigames(m);
+      this.newGame(mode, difficulty, m);
+    };
+    const opt = (m: MinigameMode, id: LineId, icon: string) =>
+      button(id, () => pick(m), current === m ? 'big on' : 'big', icon);
+    this.show(
+      h(
+        'div',
+        { class: 'panel' },
+        line('menu.minispil', 'h2'),
+        h(
+          'div',
+          { class: 'col' },
+          opt('altid', 'menu.altid', '🎮'),
+          opt('taette', 'menu.taette', '⚖️'),
+          opt('aldrig', 'menu.aldrig', '♟️'),
         ),
         button('menu.tilbage', () => this.menu(), 'small', '↩'),
       ),
@@ -135,13 +164,18 @@ export class App {
 
   // ---------------------------------------------------------------- game flow
 
-  private newGame(mode: 'ai' | 'hotseat', difficulty: Difficulty = 'mellem') {
+  private newGame(
+    mode: 'ai' | 'hotseat',
+    difficulty: Difficulty = 'mellem',
+    minigames: MinigameMode = savedMinigames(),
+  ) {
     this.controller?.dispose();
     this.presenter.reset();
     this.handingOver = false;
+    this.inMinigame = false;
     this.banner.replaceChildren();
-    // Mini-games come in the next milestone; until then battles are classic Stratego.
-    const c = new LocalController(mode, { minigames: 'aldrig' }, difficulty);
+    this.lastGame = { mode, difficulty, minigames };
+    const c = new LocalController(mode, { minigames }, difficulty);
     this.controller = c;
     this.view = null;
     this.selected = null;
@@ -263,6 +297,10 @@ export class App {
       this.gameOver(view);
       return;
     }
+    if (view.phase === 'battle') {
+      void this.playBattle(view);
+      return;
+    }
     if (view.phase !== 'play') return;
     updater.setSafe(false);
     const turnEvent = events.find((e) => e.type === 'turn');
@@ -382,13 +420,55 @@ export class App {
         h('div', { class: 'trophy', 'aria-hidden': 'true' }, '🏆'),
         line(title, 'h1'),
         reason ? line(reason, 'p') : null,
-        button('slut.igen', () => this.newGame(mode), 'big go', '🔁'),
+        button(
+          'slut.igen',
+          () => this.newGame(mode, this.lastGame?.difficulty, this.lastGame?.minigames),
+          'big go',
+          '🔁',
+        ),
         button('slut.menu', () => this.menu(), '', '🏠'),
       ),
     );
   }
 
   // ---------------------------------------------------------------- battles
+
+  private inMinigame = false;
+  private lastGame: {
+    mode: 'ai' | 'hotseat';
+    difficulty: Difficulty;
+    minigames: MinigameMode;
+  } | null = null;
+
+  /** A close fight: everyone on this device plays the battle's mini-game in turn. */
+  private async playBattle(view: GameView) {
+    const c = this.controller;
+    const b = view.pendingBattle;
+    if (!c || !b || this.inMinigame) return;
+    const att = view.pieces.find((p) => p.id === b.attackerId);
+    const def = view.pieces.find((p) => p.id === b.defenderId);
+    if (!att?.rank || !def?.rank) return;
+    this.inMinigame = true;
+    updater.setSafe(false);
+    this.banner.replaceChildren();
+    this.hud.replaceChildren();
+    try {
+      for (const team of c.localPlayers(att.team, def.team)) {
+        const mine = team === att.team ? att : def;
+        const score = await runMinigame(this.stage, this.screen, b.game, {
+          kit: this.kit,
+          seed: b.seed,
+          handicap: team === att.team ? b.handicap.attacker : b.handicap.defender,
+          team,
+          rank: mine.rank!,
+        });
+        if (this.controller !== c) return; // left the game meanwhile
+        c.reportMinigame(team, score);
+      }
+    } finally {
+      this.inMinigame = false;
+    }
+  }
 
   async showBattle(info: BattleInfo) {
     this.banner.replaceChildren(
@@ -484,5 +564,24 @@ export class App {
     }
     this.selected = null;
     this.presenter.select(null, []);
+  }
+}
+
+const MINIGAMES_KEY = 'antego.minigames';
+
+function savedMinigames(): MinigameMode {
+  try {
+    const m = localStorage.getItem(MINIGAMES_KEY);
+    return m === 'altid' || m === 'aldrig' || m === 'taette' ? m : 'taette';
+  } catch {
+    return 'taette';
+  }
+}
+
+function saveMinigames(m: MinigameMode) {
+  try {
+    localStorage.setItem(MINIGAMES_KEY, m);
+  } catch {
+    // Not remembered in private mode; the default applies next time.
   }
 }

@@ -3,6 +3,7 @@ import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/900.css';
 import './style.css';
 import { App } from './app.js';
+import { runMinigame } from './minigames/runner.js';
 import { updater } from './pwa/updater.js';
 import { buildTable } from './scene/board.js';
 import { PieceKit } from './scene/pieces.js';
@@ -50,12 +51,22 @@ async function boot() {
     stage.resetFrameWatch();
     saveQuality(null);
   };
-  app = new App(ui, stage, presenter);
+  app = new App(ui, stage, presenter, kit);
   loading.remove();
   app.menu();
   // ?debug exposes internals for screenshots and poking around in devtools.
-  if (new URLSearchParams(location.search).has('debug'))
-    Object.assign(window, { app, stage, presenter, kit });
+  if (new URLSearchParams(location.search).has('debug')) {
+    const layer = document.querySelector<HTMLElement>('.screen-layer')!;
+    const testMinigame = (game: 'stormloeb' | 'korkskud' | 'faldskaerm', handicap = 0) =>
+      runMinigame(stage, layer, game, {
+        kit,
+        seed: 1234,
+        handicap,
+        team: 'groen',
+        rank: 'sergent',
+      });
+    Object.assign(window, { app, stage, presenter, kit, testMinigame });
+  }
 }
 
 void boot();

@@ -16,6 +16,16 @@ interface ModelSet {
   lod1: Model;
 }
 
+/** A standalone soldier mesh in board units (used by the mini-games). */
+export function soldierMesh(kit: PieceKit, rank: Rank, team: Team, lod: 0 | 1 = 0): THREE.Mesh {
+  const set = kit.models.get(rank)!;
+  const model = lod === 0 ? set.lod0 : set.lod1;
+  const mesh = new THREE.Mesh(model.geo, kit.plastic[team]);
+  mesh.applyMatrix4(model.matrix);
+  mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+
 /** Everything needed to draw pieces, loaded once. */
 export class PieceKit {
   models = new Map<Rank, ModelSet>();

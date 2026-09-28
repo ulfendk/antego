@@ -28,6 +28,10 @@ export interface Controller {
   setup(team: Team, placement: Placement[]): void;
   move(team: Team, pieceId: string, to: Pos): void;
   resign(team: Team): void;
+  /** A mini-game score (0–100) for one side of the current battle. */
+  reportMinigame(team: Team, score: number): void;
+  /** Which teams play the current battle's mini-game on this device. */
+  localPlayers(attacker: Team, defender: Team): Team[];
   dispose(): void;
 }
 
@@ -36,6 +40,7 @@ export class LocalController implements Controller {
   private state: GameState;
   private listeners: Listener[] = [];
   private aiTimer: ReturnType<typeof setTimeout> | null = null;
+  private scores: Partial<Record<Team, number>> = {};
   /** Who is looking at the screen right now (hot-seat hands the device over; null hides every rank). */
   viewer: Team | null;
   readonly aiTeam: Team | null;
@@ -84,6 +89,24 @@ export class LocalController implements Controller {
     this.act({ type: 'resign', team });
   }
 
+  reportMinigame(team: Team, score: number) {
+    const b = this.state.pendingBattle;
+    if (this.state.phase !== 'battle' || !b) return;
+    this.scores[team] = score;
+    const attacker = this.state.pieces.find((p) => p.id === b.attackerId)!.team;
+    const defender: Team = attacker === 'groen' ? 'brun' : 'groen';
+    const a = this.scores[attacker];
+    const d = this.scores[defender];
+    if (a === undefined || d === undefined) return;
+    this.scores = {};
+    this.act({ type: 'minigameResult', scores: { attacker: a, defender: d } });
+  }
+
+  localPlayers(attacker: Team, defender: Team): Team[] {
+    // Hot-seat: both play on this device, the attacker first. Against the computer: only the human.
+    return [attacker, defender].filter((t) => t !== this.aiTeam);
+  }
+
   dispose() {
     if (this.aiTimer) clearTimeout(this.aiTimer);
     this.listeners = [];
@@ -99,22 +122,18 @@ export class LocalController implements Controller {
 
   private afterAction() {
     const s = this.state;
-    // Mini-games aren't in this build yet: settle any battle with simulated scores.
-    if (s.phase === 'battle' && s.pendingBattle) {
+    // A battle goes to a mini-game: the computer "plays" its side right away; humans play in the app.
+    if (s.phase === 'battle' && s.pendingBattle && this.aiTeam) {
       const b = s.pendingBattle;
-      this.act({
-        type: 'minigameResult',
-        scores: {
-          attacker: aiMinigameScore('mellem', b.handicap.attacker, b.seed),
-          defender: aiMinigameScore('mellem', b.handicap.defender, b.seed + 1),
-        },
-      });
+      const aiAttacks = s.pieces.find((p) => p.id === b.attackerId)?.team === this.aiTeam;
+      const h = aiAttacks ? b.handicap.attacker : b.handicap.defender;
+      this.scores = { [this.aiTeam]: aiMinigameScore(this.difficulty, h, b.seed) };
       return;
     }
     if (s.phase === 'play' && s.turn === this.aiTeam) this.scheduleAi();
   }
 
-  /** Called by the app once the human's move animation has played, so the bot doesn't feel instant. */
+  /** The bot moves after a short pause, so it doesn't feel instant. */
   private scheduleAi() {
     if (this.aiTimer) clearTimeout(this.aiTimer);
     this.aiTimer = setTimeout(() => {

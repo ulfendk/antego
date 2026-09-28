@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json"
+    "lines": "node build/gen-lines.ts",
+    "typecheck": "node build/gen-lines.ts && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@antego/shared": "*",

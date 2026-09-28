@@ -21,6 +21,13 @@ import { BOARD_TOP, worldToSquare } from './board.js';
 import { SETTINGS, type Quality } from './quality.js';
 import { stepTweens, tween, ease } from './tween.js';
 
+export interface SceneOverride {
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  update(dt: number): void;
+  resize?(aspect: number): void;
+}
+
 /** Default camera for each army: behind its own home rows, looking across the board. */
 const VIEW: Record<Team, { azimuth: number }> = {
   groen: { azimuth: 0 },
@@ -40,6 +47,8 @@ export class Stage {
   private portrait = false;
   onFrame: ((dt: number) => void) | null = null;
   onSlow: (() => void) | null = null;
+  /** A mini-game takes over the screen: its own scene, camera and per-frame update. */
+  private override: SceneOverride | null = null;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -77,7 +86,9 @@ export class Stage {
     this.renderer.setAnimationLoop(() => this.frame());
     // Hidden tabs get no animation frames; keep animations (and so the game flow) moving anyway.
     setInterval(() => {
-      if (document.hidden) stepTweens(100);
+      if (!document.hidden) return;
+      stepTweens(100);
+      this.override?.update(100);
     }, 100);
   }
 
@@ -172,6 +183,7 @@ export class Stage {
     // Keep the whole board in view: portrait phones need a higher, steeper camera.
     this.camera.fov = this.portrait ? 44 : 36;
     this.camera.updateProjectionMatrix();
+    this.fitOverride();
   }
 
   /** Swing the camera round to an army's side of the table. */
@@ -260,11 +272,37 @@ export class Stage {
     const dt = Math.min(100, now - this.last);
     this.last = now;
     stepTweens(dt);
+    const o = this.override;
+    if (o) {
+      o.update(dt);
+      this.renderer.toneMapping = THREE.AgXToneMapping;
+      this.renderer.render(o.scene, o.camera);
+      return;
+    }
     this.onFrame?.(dt);
     this.controls.update();
+    this.renderer.toneMapping = this.composer ? THREE.NoToneMapping : THREE.AgXToneMapping;
     if (this.composer) this.composer.render(dt / 1000);
     else this.renderer.render(this.scene, this.camera);
     this.watchFrameRate(dt);
+  }
+
+  /** Hand the screen to a mini-game (or back to the board with null). */
+  setOverride(o: SceneOverride | null) {
+    this.override = o;
+    this.controls.enabled = !o;
+    if (o) {
+      o.scene.environment = this.scene.environment;
+      this.fitOverride();
+    }
+  }
+
+  private fitOverride() {
+    const o = this.override;
+    if (!o) return;
+    o.camera.aspect = this.camera.aspect;
+    o.camera.updateProjectionMatrix();
+    o.resize?.(this.camera.aspect);
   }
 
   /** If the first seconds are clearly too slow, ask to step down a quality tier. */

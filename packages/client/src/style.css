@@ -346,3 +346,84 @@ h2,
   font-size: 13px;
   opacity: 0.55;
 }
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* ---------------------------------------------------------------- mini-games */
+
+.minigame-intro .mg-icon {
+  font-size: 64px;
+  margin-top: -64px;
+  font-family: system-ui, sans-serif;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
+
+.team-chip {
+  margin: 0;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 18px;
+}
+
+.team-chip.groen {
+  background: #6f9a43;
+  color: #f6f1dc;
+}
+
+.team-chip.brun {
+  background: #c9a36a;
+  color: #2b1d0d;
+}
+
+.minigame-intro p {
+  margin: 0;
+  font-size: 19px;
+  max-width: 420px;
+}
+
+.minigame-intro .bonus {
+  color: #9a4d10;
+}
+
+.countdown {
+  font-family: 'Black Ops One', Impact, sans-serif;
+  font-size: clamp(56px, 16vw, 140px);
+  color: #fff4d0;
+  text-shadow:
+    0 6px 0 #7a3f10,
+    0 12px 30px rgba(0, 0, 0, 0.6);
+  animation: pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+  pointer-events: none;
+}
+
+.mg-hud {
+  align-self: flex-start;
+  width: min(520px, 90vw);
+  pointer-events: none !important;
+}
+
+.mg-hud .timer {
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+
+.mg-hud .timer .bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #d9832b, #f3b35c);
+}
+
+.stars {
+  font-size: 48px;
+  color: #d9832b;
+  letter-spacing: 4px;
+  font-family: system-ui, sans-serif;
+}
